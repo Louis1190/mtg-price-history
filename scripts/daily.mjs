@@ -16,14 +16,14 @@
 // MTGJSON is a free, volunteer-run service: this job asks for Meta.json (a few bytes) first and stops there when
 // there is nothing newer, takes AllPricesToday (5 MB) otherwise, and downloads AllIdentifiers (230 MB) only when
 // today's file holds a card the saved id map doesn't know. AllPrices (150 MB) is only for the first run.
+// Every download is verified against the SHA-256 MTGJSON publishes next to the file (lib/download.mjs).
 
 import { execFileSync } from "node:child_process";
-import { appendFileSync, copyFileSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
+import { downloadVerified } from "./lib/download.mjs";
 import { readEntries } from "./lib/json-entries.mjs";
 import { readMetaFile } from "./lib/shards.mjs";
 
@@ -60,23 +60,13 @@ const log = (...a) => console.error(`[${((Date.now() - t0) / 1000).toFixed(0).pa
 mkdirSync(args.work, { recursive: true });
 mkdirSync(args.out, { recursive: true });
 
+// Every download is checked against the SHA-256 MTGJSON publishes next to the file (lib/download.mjs); what each
+// check said ends up in the report, so a file MTGJSON stopped providing a checksum for is visible, not silent.
+const checksums = {};
 async function download(name, dest) {
-	for (let attempt = 1; attempt <= 3; attempt++) {
-		try {
-			const res = await fetch(MTGJSON + name, { headers: { "User-Agent": USER_AGENT } });
-			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			await pipeline(Readable.fromWeb(res.body), createWriteStream(dest));
-			// Content-Length counts the bytes ON THE WIRE: when the server compressed the answer (MTGJSON does for Meta.json)
-			// fetch has already decompressed it, so the sizes only compare for an answer sent as is (the .gz files).
-			const expected = Number(res.headers.get("content-length") ?? 0);
-			if (expected && !res.headers.get("content-encoding") && statSync(dest).size !== expected) throw new Error(`got ${statSync(dest).size} bytes of ${expected}`);
-			return dest;
-		} catch (e) {
-			log(`downloading ${name}: attempt ${attempt} failed: ${e.message}`);
-			if (attempt === 3) throw e;
-			await new Promise((r) => setTimeout(r, attempt * 5000));
-		}
-	}
+	const result = await downloadVerified(MTGJSON + name, dest, { userAgent: USER_AGENT, log });
+	checksums[name] = result.checksum;
+	return result;
 }
 
 /** A file of MTGJSON: from --source when given, downloaded once into --work otherwise. */
@@ -100,6 +90,7 @@ function setOutput(key, value) {
 
 function finish(report, code = 0) {
 	report.seconds = Math.round((Date.now() - t0) / 1000);
+	report.checksums = checksums;
 	if (args.report) writeFileSync(args.report, JSON.stringify(report, null, 1));
 	setOutput("skipped", String(!!report.skipped));
 	if (report.asOf) setOutput("asof", report.asOf);
@@ -145,7 +136,17 @@ const bootstrap = !!args.bootstrap || !args.state || !existsSync(join(String(arg
 const report = { mode: bootstrap ? "bootstrap" : "update", skipped: false };
 
 // 1. What day is MTGJSON on?
-const metaPath = args.source ? join(args.source, "Meta.json") : await download("Meta.json", join(args.work, "Meta.json"));
+// `seenAt` + the file's Last-Modified are what lets the schedule be tuned from facts: Last-Modified is when MTGJSON's
+// build FINISHED (06:13 UTC on 2026-10-13), not when it went live (its FAQ says 9:00 AM EST), so the first run that
+// sees a new day, against the run before it, is what brackets the real publication time.
+report.seenAt = new Date().toISOString();
+let metaPath;
+if (args.source) metaPath = join(args.source, "Meta.json");
+else {
+	const meta = await download("Meta.json", join(args.work, "Meta.json"));
+	metaPath = meta.dest;
+	report.metaLastModified = meta.lastModified;
+}
 const mtgjson = JSON.parse(readFileSync(metaPath, "utf8")).meta;
 report.mtgjson = mtgjson;
 log(`MTGJSON is at ${mtgjson.version} (${mtgjson.date}); mode ${report.mode}`);

@@ -1,12 +1,18 @@
 name: daily
 
 # Appends one day of MTGJSON's prices to the price history and publishes it on GitHub Pages.
-# MTGJSON builds its files around 06:15 UTC; the second run is a retry for a late day (it stops at once when
-# the first one already did the work). `bootstrap` rebuilds everything from MTGJSON's 90-day file.
+# MTGJSON's build finishes around 06:15 UTC (the Last-Modified of its files), but its FAQ says the files go live at
+# 9:00 AM EST (about 14:00 UTC), and on 2026-10-14 nothing was published by 18:00 UTC. So there are four passes a day:
+# one that finds nothing newer than the saved state stops after one 90-byte request, which makes the extra ones nearly
+# free. status.json records the pass that first built each new day (`lastNewBuild.runAt`): once a week or two of it
+# shows when MTGJSON really publishes, keep only the passes that matter. `bootstrap` rebuilds everything from
+# MTGJSON's 90-day file.
 on:
   schedule:
     - cron: "15 8 * * *"
     - cron: "15 12 * * *"
+    - cron: "15 15 * * *"
+    - cron: "15 19 * * *"
   workflow_dispatch:
     inputs:
       bootstrap:
@@ -103,6 +109,7 @@ jobs:
             try { s = JSON.parse(fs.readFileSync("status.json", "utf8")); } catch {}
             s = { ...s, asOf: r.asOf, mtgjson: r.mtgjson.version, checkedOn: new Date().toISOString().slice(0, 10) };
             if (r.counts) s = { ...s, cards: r.counts.cards, series: r.counts.series, liveRatio: r.liveRatio };
+            if (!r.skipped) s.lastNewBuild = { asOf: r.asOf, metaLastModified: r.metaLastModified ?? null, runAt: r.seenAt };
             fs.writeFileSync("status.json", JSON.stringify(s, null, 1) + "\n");
           '
           git config user.name "github-actions[bot]"
