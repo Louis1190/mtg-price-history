@@ -1,0 +1,111 @@
+name: daily
+
+# Appends one day of MTGJSON's prices to the price history and publishes it on GitHub Pages.
+# MTGJSON builds its files around 06:15 UTC; the second run is a retry for a late day (it stops at once when
+# the first one already did the work). `bootstrap` rebuilds everything from MTGJSON's 90-day file.
+on:
+  schedule:
+    - cron: "15 8 * * *"
+    - cron: "15 12 * * *"
+  workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: "Rebuild everything from MTGJSON's 90-day file instead of appending one day"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: daily
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # The shard files are carried from one day to the next in ONE release asset, replaced every day:
+      # committing 4 096 changing files daily would grow the repository by the size of the data every time.
+      - name: Fetch the previous state
+        id: state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p work/state
+          if [ "${{ inputs.bootstrap }}" != "true" ] && gh release download state --pattern state.tar --dir work; then
+            tar -xf work/state.tar -C work/state
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        id: build
+        run: |
+          if [ "${{ steps.state.outputs.have }}" = "true" ]; then
+            node scripts/daily.mjs --state work/state --out work/out --work work/tmp --report work/report.json
+          else
+            node scripts/daily.mjs --bootstrap --out work/out --work work/tmp --report work/report.json
+          fi
+
+      - name: Assemble the site
+        if: steps.build.outputs.skipped != 'true'
+        run: |
+          mkdir site
+          cp -r work/out/s site/s
+          cp work/out/meta.json site/meta.json
+          cp site-static/* site/
+
+      - uses: actions/configure-pages@v5
+        if: steps.build.outputs.skipped != 'true'
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.build.outputs.skipped != 'true'
+        with:
+          path: site
+
+      - name: Deploy
+        id: deployment
+        if: steps.build.outputs.skipped != 'true'
+        uses: actions/deploy-pages@v4
+
+      # After the deployment, not before: if it fails the state is not saved, so the next run does the same day again.
+      - name: Save the state
+        if: steps.build.outputs.skipped != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tar -cf work/state.tar -C work/out .
+          gh release view state > /dev/null 2>&1 || gh release create state --title "state" --latest=false \
+            --notes "Working state of the daily job: the shard files and what is needed to append the next day. Replaced every day, not meant to be downloaded."
+          gh release upload state work/state.tar --clobber
+
+      # One small commit a day: a public repository's scheduled workflows are switched off after 60 days without activity.
+      - name: Record the day
+        run: |
+          node -e '
+            const fs = require("fs");
+            const r = JSON.parse(fs.readFileSync("work/report.json", "utf8"));
+            let s = {};
+            try { s = JSON.parse(fs.readFileSync("status.json", "utf8")); } catch {}
+            s = { ...s, asOf: r.asOf, mtgjson: r.mtgjson.version, checkedOn: new Date().toISOString().slice(0, 10) };
+            if (r.counts) s = { ...s, cards: r.counts.cards, series: r.counts.series, liveRatio: r.liveRatio };
+            fs.writeFileSync("status.json", JSON.stringify(s, null, 1) + "\n");
+          '
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add status.json
+          git diff --cached --quiet || { git commit -m "status: data as of $(node -p 'require("./status.json").asOf')" && git push; }

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>MTG price history</title>
+<style>
+	body { font: 16px/1.5 system-ui, sans-serif; max-width: 40em; margin: 3em auto; padding: 0 1em; }
+	code { font-size: 0.9em; }
+</style>
+</head>
+<body>
+<h1>MTG price history</h1>
+<p>Daily price history of Magic: The Gathering cards, as small static files (<code>s/&lt;xyz&gt;.json.gz</code>, one per first
+three characters of a Scryfall id). Built from <a href="https://mtgjson.com">MTGJSON</a>. Not meant to be browsed:
+<a href="https://github.com/Louis1190/mtg-price-history">the repository</a> describes the format.</p>
+<p id="asof">&nbsp;</p>
+<script>
+fetch("meta.json").then((r) => r.json()).then((m) => {
+	document.getElementById("asof").textContent = "Data as of " + m.asOf + " (MTGJSON " + m.mtgjson.version + ").";
+}).catch(() => {});
+</script>
+</body>
+</html>
