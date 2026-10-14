@@ -24,6 +24,10 @@ on:
         description: "Also run the resynchronisation REPORT now (report only: nothing published changes)"
         type: boolean
         default: false
+      republish:
+        description: "Publish the current set and the static files (site.json...) again, even if MTGJSON has nothing newer"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -74,25 +78,40 @@ jobs:
             node scripts/daily.mjs --bootstrap --out work/out --work work/tmp --report work/report.json $FLAGS
           fi
 
+      # A new day is always published. `republish` also publishes the set as it stands (the saved state), which is how a
+      # change to site-static/ (site.json, where the plugin looks for the files) goes live without waiting for MTGJSON.
+      - name: What to publish
+        id: publish
+        run: |
+          if [ "${{ steps.build.outputs.skipped }}" != "true" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            echo "dir=work/out" >> "$GITHUB_OUTPUT"
+          elif [ "${{ inputs.republish }}" = "true" ] && [ "${{ steps.state.outputs.have }}" = "true" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            echo "dir=work/state" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Assemble the site
-        if: steps.build.outputs.skipped != 'true'
+        if: steps.publish.outputs.go == 'true'
         run: |
           mkdir site
-          cp -r work/out/s site/s
-          cp work/out/meta.json site/meta.json
+          cp -r ${{ steps.publish.outputs.dir }}/s site/s
+          cp ${{ steps.publish.outputs.dir }}/meta.json site/meta.json
           cp site-static/* site/
 
       - uses: actions/configure-pages@v5
-        if: steps.build.outputs.skipped != 'true'
+        if: steps.publish.outputs.go == 'true'
 
       - uses: actions/upload-pages-artifact@v3
-        if: steps.build.outputs.skipped != 'true'
+        if: steps.publish.outputs.go == 'true'
         with:
           path: site
 
       - name: Deploy
         id: deployment
-        if: steps.build.outputs.skipped != 'true'
+        if: steps.publish.outputs.go == 'true'
         uses: actions/deploy-pages@v4
 
       # After the deployment, not before: if it fails the state is not saved, so the next run does the same day again.

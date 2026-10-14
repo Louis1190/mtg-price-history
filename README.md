@@ -16,6 +16,8 @@ meta.json            { "asOf": "2026-10-14", "mtgjson": { "date": ..., "version"
 s/<xyz>.json.gz      xyz = the first 3 hex characters of a Scryfall id: 4 096 files, ~10-40 KB each, gzip of
                      { "_": { "v": 1, "asOf": "2026-10-14" },
                        "<scryfallId>": { "<vendor>.<finish>": record, ... }, ... }
+site.json            { "v": 1, "shards": "" } what the plugin reads first: where the shard files are ("" = right here, or the https address of
+                     another host if they ever move). Edit site-static/site.json and run the workflow with `republish`.
 status.json          what the last run did (also keeps this repository's scheduled job alive)
 ```
 
