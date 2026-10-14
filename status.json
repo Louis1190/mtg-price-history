@@ -4,5 +4,24 @@
  "checkedOn": "2026-10-14",
  "cards": 105319,
  "series": 616732,
- "liveRatio": 0.9697
+ "liveRatio": 0.9697,
+ "lastResync": {
+  "ranAt": "2026-10-14T21:46:22.536Z",
+  "ran": true,
+  "source": "AllPrices.json.xz",
+  "freshAsOf": "2026-10-13",
+  "prevSeries": 616732,
+  "freshSeries": 616732,
+  "unchangedSeries": 616732,
+  "changedSeries": 0,
+  "createdSeries": 0,
+  "droppedSeries": 0,
+  "added": 0,
+  "changed": 0,
+  "removed": 0,
+  "keptOlderPoints": 0,
+  "touchedRatio": 0,
+  "byVendor": {},
+  "examples": []
+ }
 }
