@@ -12,7 +12,7 @@
 // than a week of upstream corrections can explain, or series disappearing. A resync is an improvement, never a risk to
 // what is already published: the caller keeps the previous set when this fails.
 
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { mergeSeries } from "./lib/resync.mjs";
@@ -125,5 +125,7 @@ const sizes = writeShards(args.out, merged, {
 	resyncedAsOf: freshMeta.asOf,
 	counts: { ...prevMeta.counts, ...summary },
 });
+// The id map belongs next to the set (the daily job reads it from the state): carried over, so the result can serve as the state at once.
+if (existsSync(join(args.prev, "idmap.json"))) copyFileSync(join(args.prev, "idmap.json"), join(args.out, "idmap.json"));
 log(`written: ${sizes.files} files`);
 out({ ...report, sizes });
