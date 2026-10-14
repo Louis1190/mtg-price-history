@@ -66,8 +66,10 @@ async function download(name, dest) {
 			const res = await fetch(MTGJSON + name, { headers: { "User-Agent": USER_AGENT } });
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			await pipeline(Readable.fromWeb(res.body), createWriteStream(dest));
+			// Content-Length counts the bytes ON THE WIRE: when the server compressed the answer (MTGJSON does for Meta.json)
+			// fetch has already decompressed it, so the sizes only compare for an answer sent as is (the .gz files).
 			const expected = Number(res.headers.get("content-length") ?? 0);
-			if (expected && statSync(dest).size !== expected) throw new Error(`got ${statSync(dest).size} bytes of ${expected}`);
+			if (expected && !res.headers.get("content-encoding") && statSync(dest).size !== expected) throw new Error(`got ${statSync(dest).size} bytes of ${expected}`);
 			return dest;
 		} catch (e) {
 			log(`downloading ${name}: attempt ${attempt} failed: ${e.message}`);
