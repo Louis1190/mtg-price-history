@@ -96,9 +96,11 @@ jobs:
       - name: Assemble the site
         if: steps.publish.outputs.go == 'true'
         run: |
+          # What is published is the state without the vendors we do not publish (Mana Pool: collected, not published), checked again once written.
+          node scripts/publish.mjs --from ${{ steps.publish.outputs.dir }} --out work/site-data
           mkdir site
-          cp -r ${{ steps.publish.outputs.dir }}/s site/s
-          cp ${{ steps.publish.outputs.dir }}/meta.json site/meta.json
+          cp -r work/site-data/s site/s
+          cp work/site-data/meta.json site/meta.json
           cp site-static/* site/
 
       - uses: actions/configure-pages@v5
@@ -137,6 +139,11 @@ jobs:
             if (r.counts) s = { ...s, cards: r.counts.cards, series: r.counts.series, liveRatio: r.liveRatio };
             if (!r.skipped) s.lastNewBuild = { asOf: r.asOf, metaLastModified: r.metaLastModified ?? null, runAt: r.seenAt };
             if (r.resync) s.lastResync = { ranAt: r.seenAt, ...r.resync };
+            if (r.anomalies) {
+              // The passive counter: the last 30 days, one line each (jumps/drops of the last day against the day before, see lib/anomalies.mjs).
+              const a = r.anomalies;
+              s.anomalyHistory = [...(s.anomalyHistory ?? []).filter((e) => e.asOf !== a.asOf), { asOf: a.asOf, jumps: a.jumps, drops: a.drops, byVendor: a.byVendor }].slice(-30);
+            }
             fs.writeFileSync("status.json", JSON.stringify(s, null, 1) + "\n");
           '
           git config user.name "github-actions[bot]"

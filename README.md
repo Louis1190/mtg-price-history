@@ -1,8 +1,7 @@
 # mtg-price-history
 
 A daily price history of Magic: The Gathering cards, published as small static files on GitHub Pages
-(`https://louis1190.github.io/mtg-price-history/`). Retail prices from **Cardmarket (EUR), TCGplayer, Card Kingdom
-and Mana Pool (USD)**, for normal, foil and etched finishes, one price per day, from 2026-07-15 on, with every day
+(`https://louis1190.github.io/mtg-price-history/`). Retail prices from **Cardmarket (EUR), TCGplayer and Card Kingdom (USD)**, for normal, foil and etched finishes, one price per day, from 2026-07-15 on, with every day
 added by a scheduled job.
 
 It exists for a [personal Obsidian plugin](https://github.com/Louis1190/obsidian-mtg-collection-tracker) that tracks a
@@ -21,7 +20,9 @@ site.json            { "v": 1, "shards": "" } what the plugin reads first: where
 status.json          what the last run did (also keeps this repository's scheduled job alive)
 ```
 
-- **vendor**: `cm` Cardmarket (price guide *trend*, EUR), `tcg` TCGplayer, `ck` Card Kingdom, `mp` Mana Pool (all USD).
+- **vendor**: `cm` Cardmarket (price guide *trend*, EUR), `tcg` TCGplayer, `ck` Card Kingdom (both USD). Mana Pool (`mp`) is collected but **not published**:
+  nothing reads it and its prices are the least reliable of the four (impossible values, prices a hundred times the other vendors').
+  The published files hold three vendors; `meta.json` says `"unpublishedVendors": ["mp"]`.
 - **finish**: `n` normal, `f` foil, `e` etched.
 - **record** = `[start, end, [offset, cents], ...]`, in days since 1970-01-01. Only *changes* are stored: from day
   `start + offset` the price is `cents` until the next entry; `null` means "no data from that day" (a hole).

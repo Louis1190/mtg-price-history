@@ -32,6 +32,7 @@ import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 import { downloadVerified } from "./lib/download.mjs";
 import { readEntries } from "./lib/json-entries.mjs";
+import { lastDayMove } from "./lib/anomalies.mjs";
 import { dayOf } from "./lib/series-codec.mjs";
 import { readMetaFile } from "./lib/shards.mjs";
 
@@ -145,6 +146,7 @@ function checkShardFiles(dir, asOf) {
 	let files = 0;
 	let series = 0;
 	let live = 0;
+	const moves = {}; // vendor -> { jumps, drops }: the passive counter of lib/anomalies.mjs, it only counts
 	for (const name of readdirSync(join(dir, "s"))) {
 		if (!name.endsWith(".json.gz")) return { error: `unexpected file s/${name}` };
 		let obj;
@@ -158,13 +160,18 @@ function checkShardFiles(dir, asOf) {
 		const day = Math.floor(Date.parse(`${asOf}T00:00:00Z`) / 86400000);
 		for (const [sid, recs] of Object.entries(obj)) {
 			if (sid === "_") continue;
-			for (const rec of Object.values(recs)) {
+			for (const [key, rec] of Object.entries(recs)) {
 				series++;
 				if (rec[1] === day) live++;
+				const move = lastDayMove(rec, day);
+				if (move) {
+					const m = (moves[key.split(".")[0]] ??= { jumps: 0, drops: 0 });
+					m[move === "jump" ? "jumps" : "drops"]++;
+				}
 			}
 		}
 	}
-	return { files, series, live, liveRatio: series ? live / series : 0 };
+	return { files, series, live, liveRatio: series ? live / series : 0, moves };
 }
 
 /**
@@ -292,6 +299,9 @@ if (out.counts.overCeiling) report.overCeiling = out.counts.overCeiling; // left
 const files = checkShardFiles(args.out, out.asOf);
 if (files.error) fail(report, files.error);
 report.liveRatio = Number(files.liveRatio.toFixed(4));
+// Passive: written down for status.json, never a reason to hide or refuse anything (lib/anomalies.mjs says why it exists).
+const sumOf = (field) => Object.values(files.moves).reduce((n, m) => n + m[field], 0);
+report.anomalies = { asOf: out.asOf, jumps: sumOf("jumps"), drops: sumOf("drops"), byVendor: files.moves };
 if (bootstrap) {
 	if (files.files < MIN_FILES_BOOTSTRAP) fail(report, `only ${files.files} shard files (expected at least ${MIN_FILES_BOOTSTRAP})`);
 	if (files.series < MIN_SERIES_BOOTSTRAP) fail(report, `only ${files.series} series (expected at least ${MIN_SERIES_BOOTSTRAP})`);
