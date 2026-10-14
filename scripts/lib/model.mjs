@@ -14,6 +14,15 @@ export const VENDOR_CODES = { cardmarket: "cm", tcgplayer: "tcg", cardkingdom: "
  */
 export const EXPECTED_CURRENCY = { cardmarket: "EUR", tcgplayer: "USD", cardkingdom: "USD", manapool: "USD" };
 
+/**
+ * No price above this is kept (in the vendor's own currency). The most expensive card in the files is about 150 000; MTGJSON has published
+ * 21 300 000 for a few Mana Pool prices (an integer overflow when it stored them in cents, its issue #1664). Such a point is left out and
+ * counted (`stats.overCeiling`), which makes a one-day hole in that series. It is a limit on IMPOSSIBLE values only: anything plausible but
+ * wrong (a card at 500 euros that is worth 2 cents) is deliberately NOT touched, a rule for that would also hide real rises.
+ * Lives here, with the reading of the source, so that the build, the daily update, the verification and the resync all apply it alike.
+ */
+export const MAX_PRICE = 1_000_000;
+
 /** MTGJSON finish name -> short code. */
 export const FINISH_CODES = { normal: "n", foil: "f", etched: "e" };
 
@@ -68,7 +77,7 @@ function cachedDayOf(date) {
  * a list of {key, points}, where key is "<vendor>.<finish>" and points are [[day, cents], ...] sorted.
  * Buylist prices and MTGO (cardhoarder) are left out on purpose, see README.
  * `untilDay` drops later days (used to rehearse the daily update from an older file).
- * `stats` collects what the codec has to know about the source (non-cent prices, lists in an unexpected currency).
+ * `stats` collects what the codec has to know about the source (non-cent prices, lists in an unexpected currency, prices over the ceiling).
  */
 export function seriesOfEntry(entry, untilDay = Infinity, stats = undefined) {
 	const out = [];
@@ -87,6 +96,10 @@ export function seriesOfEntry(entry, untilDay = Infinity, stats = undefined) {
 			if (!byDate) continue;
 			const points = [];
 			for (const [date, price] of Object.entries(byDate)) {
+				if (price > MAX_PRICE) {
+					if (stats) stats.overCeiling = (stats.overCeiling ?? 0) + 1;
+					continue;
+				}
 				const day = cachedDayOf(date);
 				if (day > untilDay) continue;
 				const cents = Math.round(price * 100);

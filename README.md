@@ -38,6 +38,8 @@ function decode([start, end, ...changes]) {          // -> [[day, cents], ...] f
 }
 ```
 
+Prices above 1,000,000 are not kept (MTGJSON once published 21 million for a few Mana Pool prices, an integer overflow on its side): that day is a hole in the series.
+
 Format version `v` is 1. A reader that meets another version should ignore the file.
 
 ## How it is made
