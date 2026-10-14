@@ -33,7 +33,11 @@ export function readMetaFile(dir) {
 	return JSON.parse(readFileSync(join(dir, "meta.json"), "utf8"));
 }
 
-/** Deterministic: sorted keys, fixed gzip level, no timestamps in the gzip header. */
+/**
+ * The CONTENT is deterministic (sorted keys, a fixed layout): the same source gives the same decompressed file on any
+ * machine. The compressed BYTES are only reproducible on the same zlib: the GitHub runner (Linux) and a Mac produce
+ * different gzip bytes for identical content (measured 2026-10-14, 20 of 20 files), so never compare .gz files, compare what they hold.
+ */
 export function serializeShard(byCard, asOf) {
 	const obj = { _: { v: SHARD_FORMAT_VERSION, asOf } };
 	for (const sid of [...byCard.keys()].sort()) {

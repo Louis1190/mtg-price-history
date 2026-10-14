@@ -123,7 +123,8 @@ if (mode === "source") {
 			if (examples.length < 5) examples.push(`only in B: ${sid} ${key}`);
 		}
 	}
-	// Same decoded content AND same bytes? (bytes differing with equal content would only mean a different encoding)
+	// Same decoded content AND same bytes? Bytes can differ with equal content when the two sets were compressed by
+	// different zlib builds (another machine): the series comparison above is what counts.
 	let identicalFiles = 0;
 	let differentFiles = 0;
 	const filesA = readdirSync(join(args.a, "s"));
