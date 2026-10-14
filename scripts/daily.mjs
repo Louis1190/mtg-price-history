@@ -286,6 +286,8 @@ report.asOf = out.asOf;
 report.counts = out.counts;
 report.sizes = out.sizes;
 if (out.asOf !== mtgjson.date) fail(report, `the new set is as of ${out.asOf} but MTGJSON says ${mtgjson.date}`);
+// A vendor whose prices came in another currency than ours would be mixed into old series: refuse the day (lib/model.mjs).
+if ((out.counts.badCurrency ?? 0) > 0) fail(report, `${out.counts.badCurrency} price lists are in a currency other than expected (lib/model.mjs EXPECTED_CURRENCY)`);
 const files = checkShardFiles(args.out, out.asOf);
 if (files.error) fail(report, files.error);
 report.liveRatio = Number(files.liveRatio.toFixed(4));

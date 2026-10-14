@@ -71,7 +71,7 @@ if (mode === "idmap") {
 
 	const multi = multiUuidSids(idmap);
 	const shards = new Map();
-	const st = { uuids: 0, unmapped: 0, noPaperPrice: 0, sourceSeries: 0, mergedSeries: 0, points: 0, nonCent: 0, inlineMismatch: 0 };
+	const st = { uuids: 0, unmapped: 0, noPaperPrice: 0, sourceSeries: 0, mergedSeries: 0, points: 0, nonCent: 0, badCurrency: 0, inlineMismatch: 0 };
 	const unmappedSample = [];
 	const pending = new Map(); // sid -> Map<seriesKey, [{uuid, points}]>: printings known under several uuids
 
@@ -143,7 +143,7 @@ if (mode === "idmap") {
 	const prevMeta = readMetaFile(args.prev);
 	log(`previous set: as of ${prevMeta.asOf}; today file: ${meta.date}`);
 	const shards = readShards(args.prev);
-	const st = { uuids: 0, unmapped: 0, appended: 0, created: 0, alreadyThere: 0 };
+	const st = { uuids: 0, unmapped: 0, appended: 0, created: 0, alreadyThere: 0, nonCent: 0, badCurrency: 0 };
 	// Group today's series by printing first: a double-faced card arrives under two uuids, and the
 	// day must be applied once, from their union (same rule as the build).
 	const today = new Map(); // sid -> Map<seriesKey, [{uuid, points}]>
@@ -156,7 +156,7 @@ if (mode === "idmap") {
 		}
 		let byKey = today.get(ids[0]);
 		if (!byKey) today.set(ids[0], (byKey = new Map()));
-		for (const { key, points } of seriesOfEntry(value)) {
+		for (const { key, points } of seriesOfEntry(value, Infinity, st)) {
 			let list = byKey.get(key);
 			if (!list) byKey.set(key, (list = []));
 			list.push({ uuid, points });

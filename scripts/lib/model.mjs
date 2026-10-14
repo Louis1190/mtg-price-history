@@ -6,6 +6,14 @@ import { dayOf } from "./series-codec.mjs";
 /** MTGJSON vendor name -> short code used in the files (kept short: it is repeated 750 000 times). */
 export const VENDOR_CODES = { cardmarket: "cm", tcgplayer: "tcg", cardkingdom: "ck", manapool: "mp" };
 
+/**
+ * The currency each vendor's list is in (MTGJSON says it in `currency` next to every list, since 5.1.0): Cardmarket in euros, the
+ * others in dollars. A price is a number AND a unit: a list in another currency would be mixed into a series of the old one and the
+ * chart would show a fake jump. Such a list is left out and counted (`stats.badCurrency`), and the daily job refuses the day.
+ * A list with no `currency` field at all is accepted: the field going away is not a change of unit.
+ */
+export const EXPECTED_CURRENCY = { cardmarket: "EUR", tcgplayer: "USD", cardkingdom: "USD", manapool: "USD" };
+
 /** MTGJSON finish name -> short code. */
 export const FINISH_CODES = { normal: "n", foil: "f", etched: "e" };
 
@@ -60,7 +68,7 @@ function cachedDayOf(date) {
  * a list of {key, points}, where key is "<vendor>.<finish>" and points are [[day, cents], ...] sorted.
  * Buylist prices and MTGO (cardhoarder) are left out on purpose, see README.
  * `untilDay` drops later days (used to rehearse the daily update from an older file).
- * `stats` collects what the codec has to know about the source (non-cent prices).
+ * `stats` collects what the codec has to know about the source (non-cent prices, lists in an unexpected currency).
  */
 export function seriesOfEntry(entry, untilDay = Infinity, stats = undefined) {
 	const out = [];
@@ -69,6 +77,11 @@ export function seriesOfEntry(entry, untilDay = Infinity, stats = undefined) {
 	for (const [vendor, vcode] of Object.entries(VENDOR_CODES)) {
 		const retail = paper[vendor]?.retail;
 		if (!retail) continue;
+		const currency = paper[vendor].currency;
+		if (currency !== undefined && currency !== EXPECTED_CURRENCY[vendor]) {
+			if (stats) stats.badCurrency = (stats.badCurrency ?? 0) + 1;
+			continue;
+		}
 		for (const [finish, fcode] of Object.entries(FINISH_CODES)) {
 			const byDate = retail[finish];
 			if (!byDate) continue;
