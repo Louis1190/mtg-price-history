@@ -42,9 +42,11 @@ Format version `v` is 1. A reader that meets another version should ignore the f
 
 `scripts/daily.mjs` runs four times a day (GitHub Actions, see `.github/workflows/daily.yml`). It reads MTGJSON's
 `Meta.json`, stops when there is nothing newer, otherwise appends MTGJSON's `AllPricesToday` to the previous state,
-checks every download against the SHA-256 that MTGJSON publishes next to it, checks that nothing went wrong (no file or series disappeared, nearly every series has a price for the newest day, every
+checks every download against the SHA-256 that MTGJSON publishes next to it (the big files are fetched as `.xz`, 2-3 times smaller than `.gz`), checks that nothing went wrong (no file or series disappeared, nearly every series has a price for the newest day, every
 file parses) and only then publishes. The first run rebuilds from MTGJSON's 90-day `AllPrices` and checks every series
 against it. The working state travels between runs as one asset of the `state` release.
+About once a week it also builds a fresh set from MTGJSON's 90-day `AllPrices` and records in `status.json` (`lastResync`) how many series
+would differ from the published ones (days the job missed, prices MTGJSON corrected later). It is a report only: it changes nothing published.
 
 ## Credits and terms
 

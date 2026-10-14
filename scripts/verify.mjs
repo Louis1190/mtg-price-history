@@ -8,13 +8,18 @@
 //   node verify.mjs sources --prices AllPrices.json.gz --today AllPricesToday.json.gz
 //       on the newest day, how many series do MTGJSON's own two files disagree on? (the daily update
 //       can only reproduce what the two files say, so this is the count of differences it MAY show)
+//   node verify.mjs resync --prev <dir> --fresh <dir> --merged <dir>
+//       is <merged> what a resync must give? Written independently of lib/resync.mjs: inside the window of <fresh>
+//       every day of <merged> equals <fresh>'s (both directions), before the window it equals <prev>'s, no series
+//       appears from nowhere, no file is misplaced. Streams shard by shard.
 
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { readEntries } from "./lib/json-entries.mjs";
 import { multiUuidSids, seriesOfEntry, shardOf, unionPoints } from "./lib/model.mjs";
 import { dayOf, decodeSeries, diffPoints } from "./lib/series-codec.mjs";
-import { readShards } from "./lib/shards.mjs";
+import { gunzipSync } from "node:zlib";
+import { readMetaFile, readShards } from "./lib/shards.mjs";
 
 const args = {};
 const mode = process.argv[2];
@@ -168,7 +173,64 @@ if (mode === "source") {
 		}
 	}
 	report({ day: todayDay, compared, disagree, byVendor });
+} else if (mode === "resync") {
+	const windowStart = dayOf(readMetaFile(args.fresh).firstDay);
+	const names = new Set();
+	for (const d of [args.prev, args.fresh, args.merged]) for (const f of readdirSync(join(d, "s"))) names.add(f);
+	const load = (dir, name) => (existsSync(join(dir, "s", name)) ? JSON.parse(gunzipSync(readFileSync(join(dir, "s", name))).toString("utf8")) : { _: null });
+	const mergedMeta = readMetaFile(args.merged);
+	let series = 0;
+	let windowWrong = 0;
+	let olderWrong = 0;
+	let fromNowhere = 0;
+	let lostOlder = 0;
+	let misplaced = 0;
+	let badHeader = 0;
+	let olderKept = 0;
+	const examples = [];
+	const note = (msg) => examples.length < 6 && examples.push(msg);
+	for (const name of [...names].sort()) {
+		const prev = load(args.prev, name);
+		const fresh = load(args.fresh, name);
+		const merged = load(args.merged, name);
+		if (merged._ && merged._.asOf !== mergedMeta.asOf) badHeader++;
+		for (const sid of Object.keys(merged)) if (sid !== "_" && shardOf(sid) !== name.slice(0, -".json.gz".length)) misplaced++;
+		const sids = new Set([...Object.keys(prev), ...Object.keys(fresh), ...Object.keys(merged)]);
+		sids.delete("_");
+		for (const sid of sids) {
+			const keys = new Set([...Object.keys(prev[sid] ?? {}), ...Object.keys(fresh[sid] ?? {}), ...Object.keys(merged[sid] ?? {})]);
+			for (const key of keys) {
+				const id = `${sid} ${key}`;
+				const p = prev[sid]?.[key] ? decodeSeries(prev[sid][key]) : [];
+				const f = fresh[sid]?.[key] ? decodeSeries(fresh[sid][key]) : [];
+				const m = merged[sid]?.[key] ? decodeSeries(merged[sid][key]) : [];
+				if (m.length) series++;
+				if (m.length && !p.length && !f.length) {
+					fromNowhere++;
+					note(`from nowhere: ${id}`);
+				}
+				const mWindow = m.filter(([d]) => d >= windowStart);
+				const mOlder = m.filter(([d]) => d < windowStart);
+				const pOlder = p.filter(([d]) => d < windowStart);
+				olderKept += pOlder.length;
+				const dw = diffPoints(mWindow, f);
+				if (dw !== null) {
+					windowWrong++;
+					note(`window ${id}: ${dw}`);
+				}
+				const dold = diffPoints(mOlder, pOlder);
+				if (dold !== null) {
+					olderWrong++;
+					if (mOlder.length < pOlder.length) lostOlder++;
+					note(`older ${id}: ${dold}`);
+				}
+			}
+		}
+	}
+	const ok = windowWrong === 0 && olderWrong === 0 && fromNowhere === 0 && misplaced === 0 && badHeader === 0;
+	report({ ok, windowStart: readMetaFile(args.fresh).firstDay, series, olderPointsChecked: olderKept, windowDifferentFromFresh: windowWrong, olderDifferentFromPrev: olderWrong, olderHistoryLost: lostOlder, seriesFromNowhere: fromNowhere, misplaced, badHeader, examples });
+	process.exit(ok ? 0 : 1);
 } else {
-	console.error("usage: node verify.mjs source|compare|sources (see the header of this file)");
+	console.error("usage: node verify.mjs source|compare|sources|resync (see the header of this file)");
 	process.exit(2);
 }

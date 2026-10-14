@@ -8,7 +8,9 @@
 // Assumes what MTGJSON files guarantee: the entry keys of `data` are plain strings (no escapes) and
 // every entry is itself an object. Not a general JSON streamer.
 
+import { spawn } from "node:child_process";
 import { createReadStream } from "node:fs";
+import { PassThrough } from "node:stream";
 import { createGunzip } from "node:zlib";
 
 const QUOTE = 34;
@@ -18,8 +20,40 @@ const RBRACE = 125;
 const LBRACKET = 91;
 const RBRACKET = 93;
 
-/** Raw bytes of a (possibly gzipped) file as a stream of chunks. */
+/**
+ * Formats Node cannot read itself, decompressed by the standard program of the same name (both are installed on the GitHub
+ * runner). MTGJSON's `.xz` files are 2-3x smaller than its `.gz` ones (AllPrices 48 MB against 149), which is what a
+ * volunteer-run service is owed when a file this size is fetched every week.
+ */
+const EXTERNAL_DECOMPRESSORS = { ".xz": ["xz", "-dc"], ".bz2": ["bzip2", "-dc"] };
+
+/**
+ * The decompressed bytes of `file` as a stream. THE POINT of the explicit handling: a program that dies half way (a
+ * truncated file, a missing binary) must make the stream FAIL, never end early, or a cut file would read as a complete
+ * but shorter one and be published.
+ */
+function openExternal([command, ...flags], file, chunkSize) {
+	const child = spawn(command, [...flags, file], { stdio: ["ignore", "pipe", "pipe"] });
+	const out = new PassThrough({ highWaterMark: chunkSize });
+	let stderr = "";
+	child.stderr.on("data", (d) => {
+		if (stderr.length < 500) stderr += d;
+	});
+	child.on("error", (e) => out.destroy(new Error(`${command}: ${e.message}`))); // typically ENOENT: not installed
+	child.stdout.pipe(out, { end: false });
+	child.on("close", (code, signal) => {
+		if (out.destroyed) return;
+		if (code === 0) out.end();
+		else out.destroy(new Error(`${command} failed (${signal ?? `exit ${code}`}) on ${file}: ${stderr.trim().slice(0, 200)}`));
+	});
+	out.on("close", () => child.kill()); // a reader that stops early (readMeta) must not leave the program running
+	return out;
+}
+
+/** Raw bytes of a (possibly compressed) file as a stream of chunks. */
 export function openChunks(file, chunkSize = 1 << 20) {
+	const external = Object.entries(EXTERNAL_DECOMPRESSORS).find(([ext]) => file.endsWith(ext));
+	if (external) return openExternal(external[1], file, chunkSize);
 	const raw = createReadStream(file, { highWaterMark: chunkSize });
 	return file.endsWith(".gz") ? raw.pipe(createGunzip()) : raw;
 }

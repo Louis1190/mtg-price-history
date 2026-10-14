@@ -6,7 +6,8 @@ name: daily
 # one that finds nothing newer than the saved state stops after one 90-byte request, which makes the extra ones nearly
 # free. status.json records the pass that first built each new day (`lastNewBuild.runAt`): once a week or two of it
 # shows when MTGJSON really publishes, keep only the passes that matter. `bootstrap` rebuilds everything from
-# MTGJSON's 90-day file.
+# MTGJSON's 90-day file. About once a week the job also writes a REPORT (status.json `lastResync`) of what differs between
+# the published set and MTGJSON's current 90-day file; it never changes what is published.
 on:
   schedule:
     - cron: "15 8 * * *"
@@ -17,6 +18,10 @@ on:
     inputs:
       bootstrap:
         description: "Rebuild everything from MTGJSON's 90-day file instead of appending one day"
+        type: boolean
+        default: false
+      resync:
+        description: "Also run the resynchronisation REPORT now (report only: nothing published changes)"
         type: boolean
         default: false
 
@@ -61,10 +66,12 @@ jobs:
       - name: Build
         id: build
         run: |
+          FLAGS=""
+          if [ "${{ inputs.resync }}" = "true" ]; then FLAGS="--resync"; fi
           if [ "${{ steps.state.outputs.have }}" = "true" ]; then
-            node scripts/daily.mjs --state work/state --out work/out --work work/tmp --report work/report.json
+            node scripts/daily.mjs --state work/state --out work/out --work work/tmp --report work/report.json $FLAGS
           else
-            node scripts/daily.mjs --bootstrap --out work/out --work work/tmp --report work/report.json
+            node scripts/daily.mjs --bootstrap --out work/out --work work/tmp --report work/report.json $FLAGS
           fi
 
       - name: Assemble the site
@@ -110,6 +117,7 @@ jobs:
             s = { ...s, asOf: r.asOf, mtgjson: r.mtgjson.version, checkedOn: new Date().toISOString().slice(0, 10) };
             if (r.counts) s = { ...s, cards: r.counts.cards, series: r.counts.series, liveRatio: r.liveRatio };
             if (!r.skipped) s.lastNewBuild = { asOf: r.asOf, metaLastModified: r.metaLastModified ?? null, runAt: r.seenAt };
+            if (r.resync) s.lastResync = { ranAt: r.seenAt, ...r.resync };
             fs.writeFileSync("status.json", JSON.stringify(s, null, 1) + "\n");
           '
           git config user.name "github-actions[bot]"
