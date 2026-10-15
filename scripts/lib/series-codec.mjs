@@ -82,6 +82,19 @@ export function priceOnDay(rec, day) {
 	return cur;
 }
 
+/**
+ * The price on `day`, or, when there is none that day, the latest one in the `maxBack` days before it (null when none). MTGJSON sometimes publishes
+ * nothing for a whole day (2026-10-14, for one): every series then has a hole on that day, and "the price 7 days ago" landing on it must read the
+ * day before, not nothing. Never for the CURRENT price, only for a day something is compared with.
+ */
+export function priceOnOrBefore(rec, day, maxBack = 3) {
+	for (let back = 0; back <= maxBack; back++) {
+		const price = priceOnDay(rec, day - back);
+		if (price !== null) return price;
+	}
+	return null;
+}
+
 /** Two lists of points equal? Returns null when equal, else a short description of the first difference. */
 export function diffPoints(a, b) {
 	if (a.length !== b.length) return `length ${a.length} vs ${b.length}`;

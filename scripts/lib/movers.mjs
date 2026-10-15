@@ -12,6 +12,8 @@
 //   4. for 7 days and 30 days: another vendor (same card, same finish, same period) moved the same way, by CONFIRM_UP_PCT or more up / CONFIRM_DOWN_PCT or
 //      more down. At 24 h it is NOT asked: a one-day spike has not reached a second vendor yet (measured: 6 candidates left out of 12 000);
 //   5. ranked by percent, a printing's duplicate (same name, vendor, finish and prices: 7ED #237 and #237*) kept once, the first LIST_LIMIT kept.
+// A day MTGJSON published nothing (a hole for every series, as on 2026-10-14) is looked through: what a day is compared with is the latest price in the
+// BASE_FALLBACK_DAYS before it, so the lists of the days around such a gap are not stale or empty.
 // Cardmarket repeats the previous day's whole list on some days (0 % of its series changed on 2026-09-23, 10-05 and 10-13 against ~25 %
 // usually): a vendor's "last day" is the latest one on which at least NEW_DAY_MIN_SHARE of its series really changed, so that its 24 h list
 // is not empty on those days (and a vendor that stopped altogether shows an old `as_of`, which the plugin turns into its stale-data notice).
@@ -21,7 +23,7 @@
 // parser it already has and the Home block did not change.
 
 import { EXPECTED_CURRENCY } from "./model.mjs";
-import { dateOf, priceOnDay } from "./series-codec.mjs";
+import { dateOf, priceOnDay, priceOnOrBefore } from "./series-codec.mjs";
 
 /** Period name (the plugin's CardbaseMoverPeriod) -> days. */
 export const PERIODS = { "1d": 1, "7d": 7, "30d": 30 };
@@ -45,6 +47,12 @@ export const CONFIRM_DOWN_PCT = -20;
 export const CONFIRMED_PERIODS = new Set(["7d", "30d"]);
 /** A vendor's day counts as "new" when at least this share of its series differs from the day before. */
 export const NEW_DAY_MIN_SHARE = 0.02;
+/**
+ * The day something is compared with may have no price at all, for EVERY series, when MTGJSON published nothing that day (2026-10-14): the latest price
+ * up to this many days before it is read instead (series-codec.mjs priceOnOrBefore). Without it the 1-day lists of the day after such a gap are
+ * those of the day before the gap, and the 7-day (30-day) lists of the 7th (30th) day after it are EMPTY, whatever happened to the prices.
+ */
+export const BASE_FALLBACK_DAYS = 3;
 /** How far back to look for a vendor's latest new day (a vendor with none in that many days is reported as that old). */
 export const LOOKBACK_DAYS = 6;
 
@@ -69,7 +77,7 @@ export function vendorLastNewDays(shards, asOfDay) {
 				const v = key.split(".")[0];
 				if (!(v in MOVER_VENDORS) || rec[1] !== asOfDay) continue;
 				for (let d = asOfDay - LOOKBACK_DAYS + 1; d <= asOfDay; d++) {
-					const before = priceOnDay(rec, d - 1);
+					const before = priceOnOrBefore(rec, d - 1, BASE_FALLBACK_DAYS);
 					const now = priceOnDay(rec, d);
 					if (!before || !now) continue;
 					const k = `${v}|${d}`;
@@ -100,7 +108,7 @@ export function collectMoves(shards, asOfDay, lastNewDays) {
 				const to = priceOnDay(rec, end);
 				if (!to) continue;
 				for (const [period, days] of Object.entries(PERIODS)) {
-					const from = priceOnDay(rec, end - days);
+					const from = priceOnOrBefore(rec, end - days, BASE_FALLBACK_DAYS);
 					if (!from || from === to) continue;
 					rows[period].push({ sid, v, f, from: from / 100, to: to / 100, pct: ((to - from) / from) * 100 });
 				}

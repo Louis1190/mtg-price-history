@@ -29,6 +29,10 @@ on:
         type: boolean
         default: false
 
+# The actions below are pinned to a commit (a moved or hijacked tag cannot change what runs with write access to this repository), each with the
+# version it is, and the five were brought to their latest major on 2026-10-15 (the old majors ran on Node 20, which GitHub is retiring: every run
+# carried a deprecation notice). To update: for each one, `gh api repos/actions/<name>/releases/latest --jq .tag_name`, then
+# `gh api repos/actions/<name>/commits/<tag> --jq .sha`, read the release notes for breaking changes, then run this workflow with `republish`.
 permissions:
   contents: write
   pages: write
@@ -46,9 +50,9 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
 
@@ -115,10 +119,10 @@ jobs:
           node scripts/movers.mjs --from ${{ steps.publish.outputs.dir }} --out work/movers --report work/movers-report.json
           cp -r work/movers/movers site/movers
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
         if: steps.publish.outputs.go == 'true'
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         if: steps.publish.outputs.go == 'true'
         with:
           path: site
@@ -126,7 +130,7 @@ jobs:
       - name: Deploy
         id: deployment
         if: steps.publish.outputs.go == 'true'
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
       # After the deployment, not before: if it fails the state is not saved, so the next run does the same day again.
       - name: Save the state
