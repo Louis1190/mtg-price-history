@@ -3,13 +3,16 @@
 //
 //   node publish.mjs --from <state dir> --out <dir>
 //
-// <out> gets s/<xyz>.json.gz and meta.json (with the sizes and counts of the PUBLISHED files, and the list of vendors left out). Then it reads
+// <out> gets s/<xyz>.json.gz and meta.json (with the sizes and counts of the PUBLISHED files, and the list of vendors left out); every file's
+// header also says each vendor's latest day of real price changes (`newDays`, see lib/movers.mjs vendorLastNewDays). Then it reads
 // <out> back and refuses (exit 1) unless every published series is exactly the state's and no left-out vendor is in it: what goes on the site is
 // checked once more, on the files that will be uploaded, after they were written.
 
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { vendorLastNewDays } from "./lib/movers.mjs";
 import { UNPUBLISHED_VENDORS, withoutVendors } from "./lib/publish.mjs";
+import { dateOf, dayOf } from "./lib/series-codec.mjs";
 import { readMetaFile, readShards, summarize, writeShards } from "./lib/shards.mjs";
 
 const args = {};
@@ -22,12 +25,17 @@ const meta = readMetaFile(args.from);
 const state = readShards(args.from);
 const { shards, removedSeries, removedCards } = withoutVendors(state, UNPUBLISHED_VENDORS);
 const summary = summarize(shards);
-const sizes = writeShards(args.out, shards, { ...meta, unpublishedVendors: UNPUBLISHED_VENDORS, counts: { ...meta.counts, ...summary } });
+// Each vendor's latest day on which its prices really moved (Cardmarket sometimes repeats the day before): read from the STATE, written into every file.
+const newDays = Object.fromEntries(Object.entries(vendorLastNewDays(state, dayOf(meta.asOf))).map(([code, day]) => [code, dateOf(day)]));
+const sizes = writeShards(args.out, shards, { ...meta, unpublishedVendors: UNPUBLISHED_VENDORS, newDays, counts: { ...meta.counts, ...summary } });
 
 // The check, on what was written.
 const problems = [];
 if (!existsSync(join(args.out, "meta.json"))) problems.push("no meta.json");
-const written = readShards(args.out);
+const headers = new Map();
+const written = readShards(args.out, headers);
+for (const [name, h] of headers) if (h?.asOf !== meta.asOf || JSON.stringify(h?.newDays) !== JSON.stringify(newDays)) problems.push(`${name}: the header is ${JSON.stringify(h)}, not asOf ${meta.asOf} with newDays ${JSON.stringify(newDays)}`);
+if (JSON.stringify(readMetaFile(args.out).newDays) !== JSON.stringify(newDays)) problems.push("meta.json does not carry newDays");
 let seriesWritten = 0;
 let seriesInState = 0;
 for (const byCard of state.values()) for (const recs of byCard.values()) seriesInState += Object.keys(recs).length;
@@ -42,6 +50,6 @@ for (const [name, byCard] of written) {
 }
 if (seriesWritten + removedSeries !== seriesInState) problems.push(`${seriesWritten} written + ${removedSeries} left out is not the ${seriesInState} of the state`);
 if (readdirSync(join(args.out, "s")).length !== written.size) problems.push("a file in s/ is not a shard");
-const result = { ok: problems.length === 0, asOf: meta.asOf, stateSeries: seriesInState, published: seriesWritten, leftOutSeries: removedSeries, cardsOnlyOnLeftOutVendors: removedCards, files: sizes.files, gzBytes: sizes.gzBytes, stateGzBytes: meta.sizes?.gzBytes, problems: problems.slice(0, 5) };
+const result = { ok: problems.length === 0, asOf: meta.asOf, newDays, stateSeries: seriesInState, published: seriesWritten, leftOutSeries: removedSeries, cardsOnlyOnLeftOutVendors: removedCards, files: sizes.files, gzBytes: sizes.gzBytes, stateGzBytes: meta.sizes?.gzBytes, problems: problems.slice(0, 5) };
 console.log(JSON.stringify(result, null, 1));
 process.exit(result.ok ? 0 : 1);

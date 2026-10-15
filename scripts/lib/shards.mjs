@@ -2,10 +2,13 @@
 //
 //   <dir>/meta.json            what the set covers (as-of day, MTGJSON version, counts)
 //   <dir>/s/<xyz>.json.gz      one file per first 3 hex characters of the Scryfall id (4 096 at most)
-//                              { "_": { "v": 1, "asOf": "2026-10-13" },
+//                              { "_": { "v": 1, "asOf": "2026-10-13", "newDays": { "cm": "2026-10-12", ... } },
 //                                "<scryfallId>": { "<vendor>.<finish>": record, ... }, ... }
 //                              `_` first: the format version and the as-of day travel WITH each file, so a
-//                              reader never needs a second request to know how old what it holds is.
+//                              reader never needs a second request to know how old what it holds is. `newDays` (only in the
+//                              PUBLISHED copy, see publish.mjs) is each vendor's latest day on which its prices really moved: a
+//                              vendor sometimes repeats the previous day's whole list, and "the change since yesterday" must then
+//                              be read at its last real day. Optional: a reader that does not know it ignores it.
 //
 // In memory a set is Map<shardName, Map<scryfallId, {seriesKey: record}>>.
 
@@ -16,7 +19,8 @@ import { dateOf } from "./series-codec.mjs";
 
 export const SHARD_FORMAT_VERSION = 1;
 
-export function readShards(dir) {
+/** `headersOut`, when given (a Map), receives each file's `_` header by shard name. */
+export function readShards(dir, headersOut = undefined) {
 	const shards = new Map();
 	const sdir = join(dir, "s");
 	for (const name of readdirSync(sdir)) {
@@ -25,6 +29,7 @@ export function readShards(dir) {
 		const byCard = new Map();
 		for (const [sid, series] of Object.entries(obj)) if (sid !== "_") byCard.set(sid, series);
 		shards.set(name.slice(0, -".json.gz".length), byCard);
+		headersOut?.set(name.slice(0, -".json.gz".length), obj._);
 	}
 	return shards;
 }
@@ -38,8 +43,8 @@ export function readMetaFile(dir) {
  * machine. The compressed BYTES are only reproducible on the same zlib: the GitHub runner (Linux) and a Mac produce
  * different gzip bytes for identical content (measured 2026-10-14, 20 of 20 files), so never compare .gz files, compare what they hold.
  */
-export function serializeShard(byCard, asOf) {
-	const obj = { _: { v: SHARD_FORMAT_VERSION, asOf } };
+export function serializeShard(byCard, asOf, newDays = undefined) {
+	const obj = { _: { v: SHARD_FORMAT_VERSION, asOf, ...(newDays ? { newDays } : {}) } };
 	for (const sid of [...byCard.keys()].sort()) {
 		const series = byCard.get(sid);
 		const sorted = {};
@@ -57,7 +62,7 @@ export function writeShards(dir, shards, meta) {
 	let rawTotal = 0;
 	let gzTotal = 0;
 	for (const name of [...shards.keys()].sort()) {
-		const { raw, gz } = serializeShard(shards.get(name), meta.asOf);
+		const { raw, gz } = serializeShard(shards.get(name), meta.asOf, meta.newDays);
 		writeFileSync(join(dir, "s", `${name}.json.gz`), gz);
 		gzSizes.push(gz.length);
 		rawTotal += raw;

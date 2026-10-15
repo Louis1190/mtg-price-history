@@ -13,7 +13,7 @@ service with guarantees**: the files are rebuilt every day from MTGJSON and may 
 ```
 meta.json            { "asOf": "2026-10-14", "mtgjson": { "date": ..., "version": ... }, "counts": ..., "sizes": ... }
 s/<xyz>.json.gz      xyz = the first 3 hex characters of a Scryfall id: 4 096 files, ~10-40 KB each, gzip of
-                     { "_": { "v": 1, "asOf": "2026-10-14" },
+                     { "_": { "v": 1, "asOf": "2026-10-14", "newDays": { "cm": "2026-10-13", "tcg": "2026-10-14", "ck": "2026-10-14" } },
                        "<scryfallId>": { "<vendor>.<finish>": record, ... }, ... }
 site.json            { "v": 1, "shards": "" } what the plugin reads first: where the shard files are ("" = right here, or the https address of
                      another host if they ever move). Edit site-static/site.json and run the workflow with `republish`.
@@ -23,6 +23,8 @@ movers/<period>-<view>.json   the market movers: the 20 biggest rises and falls 
 status.json          what the last run did (also keeps this repository's scheduled job alive)
 ```
 
+- **`newDays`** (optional, in every file's `_`): each vendor's latest day on which its prices really moved. Cardmarket sometimes repeats the previous day's whole list; a reader that wants "the change
+  since yesterday" reads it at that day, not at `asOf`. A reader that does not know the field ignores it.
 - **vendor**: `cm` Cardmarket (price guide *trend*, EUR), `tcg` TCGplayer, `ck` Card Kingdom (both USD). Mana Pool (`mp`) is collected but **not published**:
   nothing reads it and its prices are the least reliable of the four (impossible values, prices a hundred times the other vendors').
   The published files hold three vendors; `meta.json` says `"unpublishedVendors": ["mp"]`.
