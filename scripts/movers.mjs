@@ -11,8 +11,8 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { FINISH_NAMES, FLOOR, LIST_LIMIT, MOVER_VENDORS, PERIODS, buildMoverFiles, isImplausible, moverFileName, vendorLastNewDays } from "./lib/movers.mjs";
-import { dayOf, priceOnDay } from "./lib/series-codec.mjs";
+import { BASE_FALLBACK_DAYS, FINISH_NAMES, FLOOR, LIST_LIMIT, MOVER_VENDORS, PERIODS, buildMoverFiles, isImplausible, moverFileName, vendorLastNewDays } from "./lib/movers.mjs";
+import { dayOf, priceOnDay, priceOnOrBefore } from "./lib/series-codec.mjs";
 import { readMetaFile, readShards } from "./lib/shards.mjs";
 
 const args = {};
@@ -72,10 +72,10 @@ for (const period of Object.keys(PERIODS)) {
 				if (Math.sign(r.change_pct) !== dir) problem(`${name}: ${r.scryfall_id} is in ${side} with ${r.change_pct} %`);
 				if (i > 0 && (list[i - 1].change_pct - r.change_pct) * dir < 0) problem(`${name}: ${side} is not sorted at ${i}`);
 				if (isImplausible(r.price_from, r.price_to) || Math.min(r.price_from, r.price_to) < FLOOR) problem(`${name}: ${r.scryfall_id} breaks the rules (${r.price_from} -> ${r.price_to})`);
-				// Every price is the state's own, read again straight from the record.
+				// Every price is the state's own, read again straight from the record (the day something is compared with the way lib/movers.mjs reads it: through a day with no data).
 				const rec = recordsOf.get(r.scryfall_id)?.[`${code}.${f}`];
 				const end = lastNewDays[code];
-				if (!rec || Math.round(r.price_to * 100) !== priceOnDay(rec, end) || Math.round(r.price_from * 100) !== priceOnDay(rec, end - PERIODS[period])) problem(`${name}: ${r.scryfall_id} ${code}.${f} differs from the state`);
+				if (!rec || Math.round(r.price_to * 100) !== priceOnDay(rec, end) || Math.round(r.price_from * 100) !== priceOnOrBefore(rec, end - PERIODS[period], BASE_FALLBACK_DAYS)) problem(`${name}: ${r.scryfall_id} ${code}.${f} differs from the state`);
 			});
 		}
 	}
