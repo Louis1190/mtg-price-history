@@ -64,12 +64,29 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p work/state
-          if [ "${{ inputs.bootstrap }}" != "true" ] && gh release download state --pattern state.tar --dir work; then
-            tar -xf work/state.tar -C work/state
-            echo "have=true" >> "$GITHUB_OUTPUT"
-          else
+          if [ "${{ inputs.bootstrap }}" = "true" ]; then
             echo "have=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          # A download that fails must STOP the job, never fall back to rebuilding from MTGJSON's 90-day file: that rebuild would be published and
+          # saved as the new state, and would silently drop every day older than the file holds. Rebuilding is something to ask for (`bootstrap`).
+          ok=false
+          for attempt in 1 2 3; do
+            rm -f work/state.tar
+            if gh release download state --pattern state.tar --dir work && tar -tf work/state.tar > /dev/null; then ok=true; break; fi
+            echo "attempt $attempt to download the saved state failed"
+            sleep $((attempt * ${RETRY_PAUSE:-15}))
+          done
+          if [ "$ok" != "true" ]; then
+            echo "::error::The saved state could not be downloaded or read (3 tries). The job stops instead of rebuilding from MTGJSON's 90-day file on its own, which would silently drop any older history. Run this workflow with 'bootstrap' to rebuild on purpose."
+            exit 1
+          fi
+          tar -xf work/state.tar -C work/state
+          if [ ! -f work/state/meta.json ] || [ ! -d work/state/s ]; then
+            echo "::error::The saved state has no meta.json or no s/ folder."
+            exit 1
+          fi
+          echo "have=true" >> "$GITHUB_OUTPUT"
 
       - name: Build
         id: build
@@ -139,9 +156,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tar -cf work/state.tar -C work/out .
+          size=$(wc -c < work/state.tar | tr -d ' ')
           gh release view state > /dev/null 2>&1 || gh release create state --title "state" --latest=false \
             --notes "Working state of the daily job: the shard files and what is needed to append the next day. Replaced every day, not meant to be downloaded."
-          gh release upload state work/state.tar --clobber
+          # `--clobber` deletes the old asset before the new one is up: a failed upload must be tried again, and what GitHub holds is checked (its size) before
+          # this step says it worked. Without a state the next run would stop (see "Fetch the previous state"): the weekly backups are the way back.
+          ok=false
+          for attempt in 1 2 3; do
+            if gh release upload state work/state.tar --clobber && [ "$(gh release view state --json assets --jq '.assets[] | select(.name=="state.tar") | .size')" = "$size" ]; then ok=true; break; fi
+            echo "attempt $attempt to save the state failed"
+            sleep $((attempt * ${RETRY_PAUSE:-15}))
+          done
+          if [ "$ok" != "true" ]; then
+            echo "::error::The state could not be saved (3 tries). Restore it from the newest snapshot of the backups release (README, Backups and restoring)."
+            exit 1
+          fi
 
       # One small commit a day: a public repository's scheduled workflows are switched off after 60 days without activity.
       - name: Record the day
