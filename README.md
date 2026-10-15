@@ -17,6 +17,9 @@ s/<xyz>.json.gz      xyz = the first 3 hex characters of a Scryfall id: 4 096 fi
                        "<scryfallId>": { "<vendor>.<finish>": record, ... }, ... }
 site.json            { "v": 1, "shards": "" } what the plugin reads first: where the shard files are ("" = right here, or the https address of
                      another host if they ever move). Edit site-static/site.json and run the workflow with `republish`.
+movers/<period>-<view>.json   the market movers: the 20 biggest rises and falls over 1d, 7d and 30d, for all vendors together (`all`) and for each of
+                     cardmarket, tcgplayer and cardkingdom: 12 files of about 8 KB, in the response shape of cardbase.dev's `/movers`
+                     ({ "data": { "period", "gainers": [...], "losers": [...] }, "meta": { "as_of" } }). See below.
 status.json          what the last run did (also keeps this repository's scheduled job alive)
 ```
 
@@ -52,6 +55,16 @@ file parses) and only then publishes. The first run rebuilds from MTGJSON's 90-d
 against it. The working state travels between runs as one asset of the `state` release. A snapshot of it is also kept once a week (the last eight) in the `backups` release: our history older than MTGJSON's 90-day window exists nowhere else.
 About once a week it also builds a fresh set from MTGJSON's 90-day `AllPrices` and records in `status.json` (`lastResync`) how many series
 would differ from the published ones (days the job missed, prices MTGJSON corrected later). It is a report only: it changes nothing published.
+
+## The market movers
+
+`scripts/movers.mjs` (rules in `scripts/lib/movers.mjs`) turns the same state into twelve small lists, in a separate workflow step whose failure is tolerated
+(without them the plugin asks another source; the day's prices are never held back). A list keeps a series only when it is live on the last day with a price on both days
+compared, passes the plugin's anomaly filter (lower price at least 2, at most 5 times between the two prices, at most twice from 250 up), and has a lower price of at least 5.
+For 7 and 30 days another vendor must also have moved the same way for the same card and finish (up 25 % or more, down 20 % or more): a one-day spike has not reached a second vendor yet,
+so 24 hours does not ask for it. Ranked by percent, a printing's duplicate (same name, vendor, finish, prices) kept once. Cardmarket sometimes repeats the previous day's whole list (about one day in
+eight): a vendor's "last day" is the latest one on which at least 2 % of its series really changed, and a file's `as_of` is that day. Mana Pool is not here.
+The script reads what it wrote back and refuses (the files are then not published) unless every row follows the rules and every price is exactly the state's.
 
 ## Credits and terms
 

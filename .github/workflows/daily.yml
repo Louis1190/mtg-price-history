@@ -103,6 +103,18 @@ jobs:
           cp work/site-data/meta.json site/meta.json
           cp site-static/* site/
 
+      # The market movers (the plugin's "Market trends" block): twelve small lists computed from the same state, written next to the prices
+      # (scripts/lib/movers.mjs says what a list is). A step of its own whose failure is tolerated: without these files the plugin asks
+      # another source for the movers, which is out of date but harmless, and a problem here must never hold back the day's prices.
+      # The files are only copied to the site once the script has read them back and checked them.
+      - name: Market movers
+        id: movers
+        if: steps.publish.outputs.go == 'true'
+        continue-on-error: true
+        run: |
+          node scripts/movers.mjs --from ${{ steps.publish.outputs.dir }} --out work/movers --report work/movers-report.json
+          cp -r work/movers/movers site/movers
+
       - uses: actions/configure-pages@v5
         if: steps.publish.outputs.go == 'true'
 
@@ -129,6 +141,8 @@ jobs:
 
       # One small commit a day: a public repository's scheduled workflows are switched off after 60 days without activity.
       - name: Record the day
+        env:
+          MOVERS_OUTCOME: ${{ steps.movers.outcome }}
         run: |
           node -e '
             const fs = require("fs");
@@ -143,6 +157,13 @@ jobs:
               // The passive counter: the last 30 days, one line each (jumps/drops of the last day against the day before, see lib/anomalies.mjs).
               const a = r.anomalies;
               s.anomalyHistory = [...(s.anomalyHistory ?? []).filter((e) => e.asOf !== a.asOf), { asOf: a.asOf, jumps: a.jumps, drops: a.drops, byVendor: a.byVendor }].slice(-30);
+            }
+            // The market movers: what the step wrote, or that it failed (the files are then missing from the site, see the step).
+            if (process.env.MOVERS_OUTCOME === "success") {
+              const m = JSON.parse(fs.readFileSync("work/movers-report.json", "utf8"));
+              s.lastMovers = { asOf: m.asOf, rows: m.rows, lastNewDays: m.lastNewDays };
+            } else if (process.env.MOVERS_OUTCOME === "failure") {
+              s.lastMovers = { ...(s.lastMovers ?? {}), failedAt: new Date().toISOString() };
             }
             fs.writeFileSync("status.json", JSON.stringify(s, null, 1) + "\n");
           '
