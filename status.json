@@ -1,10 +1,10 @@
 {
- "asOf": "2026-10-13",
- "mtgjson": "5.3.0+20261013",
+ "asOf": "2026-10-15",
+ "mtgjson": "5.3.0+20261015",
  "checkedOn": "2026-10-15",
- "cards": 105319,
- "series": 616732,
- "liveRatio": 0.9697,
+ "cards": 110371,
+ "series": 616936,
+ "liveRatio": 0.9692,
  "lastResync": {
   "ranAt": "2026-10-14T21:46:22.536Z",
   "ran": true,
@@ -25,9 +25,9 @@
   "examples": []
  },
  "lastNewBuild": {
-  "asOf": "2026-10-13",
-  "metaLastModified": "Tue, 13 Oct 2026 06:13:24 GMT",
-  "runAt": "2026-10-14T23:42:30.798Z"
+  "asOf": "2026-10-15",
+  "metaLastModified": "Thu, 15 Oct 2026 06:11:30 GMT",
+  "runAt": "2026-10-15T16:07:32.246Z"
  },
  "lastMovers": {
   "asOf": "2026-10-13",
@@ -36,6 +36,15 @@
    "cm": "2026-10-12",
    "tcg": "2026-10-13",
    "ck": "2026-10-13"
+  },
+  "failedAt": "2026-10-15T16:08:36.078Z"
+ },
+ "anomalyHistory": [
+  {
+   "asOf": "2026-10-15",
+   "jumps": 0,
+   "drops": 0,
+   "byVendor": {}
   }
- }
+ ]
 }
