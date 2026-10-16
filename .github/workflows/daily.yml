@@ -136,6 +136,18 @@ jobs:
           node scripts/movers.mjs --from ${{ steps.publish.outputs.dir }} --out work/movers --report work/movers-report.json
           cp -r work/movers/movers site/movers
 
+      # Mana Pool for phones and tablets: a second, separate set (site/mp/, same file layout), because the main files leave Mana Pool out and a phone
+      # cannot read Mana Pool's own 49 MB price list. A computer never downloads it. A step of its own whose failure is tolerated, like the movers:
+      # without these files the Mana Pool column of a phone shows "—" and nothing else changes. The script reads what it wrote back and checks it
+      # (scripts/lib/mp-files.mjs says what the guard against absurd prices does); the files are only copied to the site once it has passed.
+      - name: Mana Pool for phones
+        id: mp
+        if: steps.publish.outputs.go == 'true'
+        continue-on-error: true
+        run: |
+          node scripts/publish-mp.mjs --from ${{ steps.publish.outputs.dir }} --out work/mp --report work/mp-report.json
+          cp -r work/mp/mp site/mp
+
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
         if: steps.publish.outputs.go == 'true'
 
@@ -176,6 +188,7 @@ jobs:
       - name: Record the day
         env:
           MOVERS_OUTCOME: ${{ steps.movers.outcome }}
+          MP_OUTCOME: ${{ steps.mp.outcome }}
         run: |
           node -e '
             const fs = require("fs");
@@ -197,6 +210,13 @@ jobs:
               s.lastMovers = { asOf: m.asOf, rows: m.rows, lastNewDays: m.lastNewDays };
             } else if (process.env.MOVERS_OUTCOME === "failure") {
               s.lastMovers = { ...(s.lastMovers ?? {}), failedAt: new Date().toISOString() };
+            }
+            // The Mana Pool set for phones: what the step wrote, or that it failed (the files are then missing from the site, see the step).
+            if (process.env.MP_OUTCOME === "success") {
+              const m = JSON.parse(fs.readFileSync("work/mp-report.json", "utf8"));
+              s.lastMobileMp = { asOf: m.asOf, files: m.files, series: m.series, hiddenSeries: m.hiddenSeries };
+            } else if (process.env.MP_OUTCOME === "failure") {
+              s.lastMobileMp = { ...(s.lastMobileMp ?? {}), failedAt: new Date().toISOString() };
             }
             fs.writeFileSync("status.json", JSON.stringify(s, null, 1) + "\n");
           '

@@ -19,10 +19,10 @@ import { dateOf } from "./series-codec.mjs";
 
 export const SHARD_FORMAT_VERSION = 1;
 
-/** `headersOut`, when given (a Map), receives each file's `_` header by shard name. */
-export function readShards(dir, headersOut = undefined) {
+/** `headersOut`, when given (a Map), receives each file's `_` header by shard name. `sub` is the folder of `dir` that holds the files ("s", or "mp" for the Mana Pool set, see lib/mp-files.mjs). */
+export function readShards(dir, headersOut = undefined, sub = "s") {
 	const shards = new Map();
-	const sdir = join(dir, "s");
+	const sdir = join(dir, sub);
 	for (const name of readdirSync(sdir)) {
 		if (!name.endsWith(".json.gz")) continue;
 		const obj = JSON.parse(gunzipSync(readFileSync(join(sdir, name))).toString("utf8"));
