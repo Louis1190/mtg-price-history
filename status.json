@@ -1,37 +1,37 @@
 {
- "asOf": "2026-10-26",
- "mtgjson": "5.3.0+20261026",
- "checkedOn": "2026-10-26",
- "cards": 110859,
- "series": 618608,
- "liveRatio": 0.9709,
+ "asOf": "2026-10-27",
+ "mtgjson": "5.3.0+20261027",
+ "checkedOn": "2026-10-27",
+ "cards": 110963,
+ "series": 618846,
+ "liveRatio": 0.9701,
  "lastResync": {
-  "ranAt": "2026-10-20T17:01:45.188Z",
+  "ranAt": "2026-10-27T14:32:28.514Z",
   "ran": true,
   "source": "AllPrices.json.xz",
-  "freshAsOf": "2026-10-20",
-  "prevSeries": 617257,
-  "freshSeries": 616998,
-  "unchangedSeries": 615469,
-  "changedSeries": 1788,
+  "freshAsOf": "2026-10-27",
+  "prevSeries": 618846,
+  "freshSeries": 618495,
+  "unchangedSeries": 617010,
+  "changedSeries": 1836,
   "createdSeries": 0,
   "droppedSeries": 0,
   "added": 0,
-  "changed": 69621,
+  "changed": 70145,
   "removed": 0,
-  "keptOlderPoints": 4152264,
-  "touchedRatio": 0.0029,
+  "keptOlderPoints": 8310761,
+  "touchedRatio": 0.00297,
   "byVendor": {
    "mp": {
-    "series": 1648,
+    "series": 1694,
     "added": 0,
-    "changed": 65996,
+    "changed": 66572,
     "removed": 0
    },
    "ck": {
-    "series": 140,
+    "series": 142,
     "added": 0,
-    "changed": 3625,
+    "changed": 3573,
     "removed": 0
    }
   },
@@ -40,72 +40,72 @@
     "sid": "000d9280-a79a-4f9f-822c-7aaecbff3337",
     "key": "mp.n",
     "added": 0,
-    "changed": 48,
+    "changed": 50,
     "removed": 0
    },
    {
     "sid": "001cc57e-f3fc-4790-a9e5-171b2e3e8739",
     "key": "mp.f",
     "added": 0,
-    "changed": 58,
+    "changed": 67,
     "removed": 0
    },
    {
     "sid": "001cc57e-f3fc-4790-a9e5-171b2e3e8739",
-    "key": "mp.n",
-    "added": 0,
-    "changed": 45,
-    "removed": 0
-   },
-   {
-    "sid": "004f2ea4-0477-49b2-ad06-5aac7991103d",
-    "key": "mp.f",
-    "added": 0,
-    "changed": 65,
-    "removed": 0
-   },
-   {
-    "sid": "004f2ea4-0477-49b2-ad06-5aac7991103d",
-    "key": "mp.n",
-    "added": 0,
-    "changed": 34,
-    "removed": 0
-   },
-   {
-    "sid": "006f53ab-e200-4242-9e8f-494f8d574826",
-    "key": "mp.n",
-    "added": 0,
-    "changed": 38,
-    "removed": 0
-   },
-   {
-    "sid": "007c828b-5854-41ac-9c18-f9d41c69ed33",
     "key": "mp.n",
     "added": 0,
     "changed": 47,
     "removed": 0
    },
    {
+    "sid": "004f2ea4-0477-49b2-ad06-5aac7991103d",
+    "key": "mp.f",
+    "added": 0,
+    "changed": 60,
+    "removed": 0
+   },
+   {
+    "sid": "004f2ea4-0477-49b2-ad06-5aac7991103d",
+    "key": "mp.n",
+    "added": 0,
+    "changed": 32,
+    "removed": 0
+   },
+   {
+    "sid": "006f53ab-e200-4242-9e8f-494f8d574826",
+    "key": "mp.n",
+    "added": 0,
+    "changed": 37,
+    "removed": 0
+   },
+   {
+    "sid": "007c828b-5854-41ac-9c18-f9d41c69ed33",
+    "key": "mp.n",
+    "added": 0,
+    "changed": 58,
+    "removed": 0
+   },
+   {
     "sid": "00841e4b-0995-4fb5-93d6-e177beba4934",
     "key": "mp.f",
     "added": 0,
-    "changed": 13,
+    "changed": 14,
     "removed": 0
    }
   ]
  },
  "lastNewBuild": {
-  "asOf": "2026-10-26",
-  "metaLastModified": "Mon, 26 Oct 2026 06:10:05 GMT",
-  "runAt": "2026-10-26T15:12:19.017Z"
+  "asOf": "2026-10-27",
+  "metaLastModified": "Tue, 27 Oct 2026 06:12:05 GMT",
+  "runAt": "2026-10-27T14:32:28.514Z"
  },
  "lastMovers": {
-  "asOf": "2026-10-26",
-  "rows": 476,
+  "asOf": "2026-10-27",
+  "rows": 479,
   "lastNewDays": {
-   "cm": "2026-10-26",
-   "tcg": "2026-10-26",
-   "ck": "2026-10-25"
+   "cm": "2026-10-27",
+   "tcg": "2026-10-27",
+   "ck": "2026-10-27"
   }
  },
  "anomalyHistory": [
@@ -287,12 +287,35 @@
      "drops": 1
     }
    }
+  },
+  {
+   "asOf": "2026-10-27",
+   "jumps": 8,
+   "drops": 4,
+   "byVendor": {
+    "ck": {
+     "jumps": 1,
+     "drops": 0
+    },
+    "mp": {
+     "jumps": 6,
+     "drops": 3
+    },
+    "tcg": {
+     "jumps": 1,
+     "drops": 0
+    },
+    "cm": {
+     "jumps": 0,
+     "drops": 1
+    }
+   }
   }
  ],
  "lastMobileMp": {
-  "asOf": "2026-10-26",
+  "asOf": "2026-10-27",
   "files": 4096,
-  "series": 154697,
-  "hiddenSeries": 62
+  "series": 154843,
+  "hiddenSeries": 60
  }
 }
