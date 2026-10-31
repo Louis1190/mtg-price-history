@@ -1,10 +1,10 @@
 {
- "asOf": "2026-10-30",
- "mtgjson": "5.3.0+20261030",
- "checkedOn": "2026-10-30",
- "cards": 111578,
- "series": 620004,
- "liveRatio": 0.9709,
+ "asOf": "2026-10-31",
+ "mtgjson": "5.3.0+20261031",
+ "checkedOn": "2026-10-31",
+ "cards": 111783,
+ "series": 620410,
+ "liveRatio": 0.9702,
  "lastResync": {
   "ranAt": "2026-10-27T14:32:28.514Z",
   "ran": true,
@@ -95,17 +95,17 @@
   ]
  },
  "lastNewBuild": {
-  "asOf": "2026-10-30",
-  "metaLastModified": "Fri, 30 Oct 2026 06:13:02 GMT",
-  "runAt": "2026-10-30T15:03:30.362Z"
+  "asOf": "2026-10-31",
+  "metaLastModified": "Sat, 31 Oct 2026 06:14:28 GMT",
+  "runAt": "2026-10-31T14:32:26.021Z"
  },
  "lastMovers": {
-  "asOf": "2026-10-30",
-  "rows": 475,
+  "asOf": "2026-10-31",
+  "rows": 476,
   "lastNewDays": {
-   "cm": "2026-10-30",
-   "tcg": "2026-10-30",
-   "ck": "2026-10-30"
+   "cm": "2026-10-31",
+   "tcg": "2026-10-31",
+   "ck": "2026-10-31"
   }
  },
  "anomalyHistory": [
@@ -351,12 +351,23 @@
      "drops": 11
     }
    }
+  },
+  {
+   "asOf": "2026-10-31",
+   "jumps": 5,
+   "drops": 5,
+   "byVendor": {
+    "mp": {
+     "jumps": 5,
+     "drops": 5
+    }
+   }
   }
  ],
  "lastMobileMp": {
-  "asOf": "2026-10-30",
+  "asOf": "2026-10-31",
   "files": 4096,
-  "series": 155568,
-  "hiddenSeries": 55
+  "series": 155831,
+  "hiddenSeries": 54
  }
 }
