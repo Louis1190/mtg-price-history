@@ -1,38 +1,44 @@
 {
- "asOf": "2026-11-16",
- "mtgjson": "5.3.0+20261116",
+ "asOf": "2026-11-17",
+ "mtgjson": "5.3.0+20261117",
  "checkedOn": "2026-11-17",
- "cards": 112657,
- "series": 628412,
- "liveRatio": 0.9697,
+ "cards": 112680,
+ "series": 628537,
+ "liveRatio": 0.9693,
  "lastResync": {
-  "ranAt": "2026-11-10T16:26:18.465Z",
+  "ranAt": "2026-11-17T17:38:52.725Z",
   "ran": true,
   "source": "AllPrices.json.xz",
-  "freshAsOf": "2026-11-10",
-  "prevSeries": 626264,
-  "freshSeries": 625701,
-  "unchangedSeries": 624454,
-  "changedSeries": 1810,
+  "freshAsOf": "2026-11-17",
+  "prevSeries": 628537,
+  "freshSeries": 627816,
+  "unchangedSeries": 626688,
+  "changedSeries": 1799,
   "createdSeries": 0,
-  "droppedSeries": 0,
+  "droppedSeries": 50,
   "added": 0,
-  "changed": 68399,
-  "removed": 0,
-  "keptOlderPoints": 16066267,
-  "touchedRatio": 0.00289,
+  "changed": 63360,
+  "removed": 50,
+  "keptOlderPoints": 20255453,
+  "touchedRatio": 0.00294,
   "byVendor": {
    "mp": {
-    "series": 1671,
+    "series": 1660,
     "added": 0,
-    "changed": 64822,
+    "changed": 59694,
     "removed": 0
    },
    "ck": {
     "series": 139,
     "added": 0,
-    "changed": 3577,
+    "changed": 3666,
     "removed": 0
+   },
+   "cm": {
+    "series": 50,
+    "added": 0,
+    "changed": 0,
+    "removed": 50
    }
   },
   "examples": [
@@ -40,14 +46,14 @@
     "sid": "000d9280-a79a-4f9f-822c-7aaecbff3337",
     "key": "mp.n",
     "added": 0,
-    "changed": 41,
+    "changed": 37,
     "removed": 0
    },
    {
     "sid": "001cc57e-f3fc-4790-a9e5-171b2e3e8739",
     "key": "mp.f",
     "added": 0,
-    "changed": 70,
+    "changed": 56,
     "removed": 0
    },
    {
@@ -61,77 +67,54 @@
     "sid": "004f2ea4-0477-49b2-ad06-5aac7991103d",
     "key": "mp.f",
     "added": 0,
-    "changed": 41,
+    "changed": 53,
     "removed": 0
    },
    {
     "sid": "004f2ea4-0477-49b2-ad06-5aac7991103d",
     "key": "mp.n",
     "added": 0,
-    "changed": 32,
+    "changed": 34,
     "removed": 0
    },
    {
     "sid": "006f53ab-e200-4242-9e8f-494f8d574826",
     "key": "mp.n",
     "added": 0,
-    "changed": 26,
+    "changed": 27,
     "removed": 0
    },
    {
     "sid": "007c828b-5854-41ac-9c18-f9d41c69ed33",
     "key": "mp.n",
     "added": 0,
-    "changed": 43,
+    "changed": 40,
     "removed": 0
    },
    {
     "sid": "00841e4b-0995-4fb5-93d6-e177beba4934",
     "key": "mp.f",
     "added": 0,
-    "changed": 2,
+    "changed": 1,
     "removed": 0
    }
   ]
  },
  "lastNewBuild": {
-  "asOf": "2026-11-16",
-  "metaLastModified": "Mon, 16 Nov 2026 06:12:42 GMT",
-  "runAt": "2026-11-16T18:33:16.794Z"
+  "asOf": "2026-11-17",
+  "metaLastModified": "Tue, 17 Nov 2026 06:12:42 GMT",
+  "runAt": "2026-11-17T17:38:52.725Z"
  },
  "lastMovers": {
-  "asOf": "2026-11-16",
+  "asOf": "2026-11-17",
   "rows": 480,
   "lastNewDays": {
-   "cm": "2026-11-16",
-   "tcg": "2026-11-16",
-   "ck": "2026-11-16"
+   "cm": "2026-11-17",
+   "tcg": "2026-11-17",
+   "ck": "2026-11-17"
   }
  },
  "anomalyHistory": [
-  {
-   "asOf": "2026-10-18",
-   "jumps": 4,
-   "drops": 3,
-   "byVendor": {
-    "ck": {
-     "jumps": 0,
-     "drops": 1
-    },
-    "mp": {
-     "jumps": 3,
-     "drops": 1
-    },
-    "tcg": {
-     "jumps": 0,
-     "drops": 1
-    },
-    "cm": {
-     "jumps": 1,
-     "drops": 0
-    }
-   }
-  },
   {
    "asOf": "2026-10-19",
    "jumps": 2,
@@ -594,12 +577,27 @@
      "drops": 2
     }
    }
+  },
+  {
+   "asOf": "2026-11-17",
+   "jumps": 4,
+   "drops": 6,
+   "byVendor": {
+    "mp": {
+     "jumps": 3,
+     "drops": 6
+    },
+    "ck": {
+     "jumps": 1,
+     "drops": 0
+    }
+   }
   }
  ],
  "lastMobileMp": {
-  "asOf": "2026-11-16",
+  "asOf": "2026-11-17",
   "files": 4096,
-  "series": 157714,
-  "hiddenSeries": 56
+  "series": 157752,
+  "hiddenSeries": 54
  }
 }
