@@ -1,37 +1,37 @@
 {
- "asOf": "2026-11-23",
- "mtgjson": "5.3.0+20261123",
+ "asOf": "2026-11-24",
+ "mtgjson": "5.3.0+20261124",
  "checkedOn": "2026-11-24",
- "cards": 112745,
- "series": 629632,
- "liveRatio": 0.9705,
+ "cards": 112755,
+ "series": 629741,
+ "liveRatio": 0.9701,
  "lastResync": {
-  "ranAt": "2026-11-17T17:38:52.725Z",
+  "ranAt": "2026-11-24T22:25:04.381Z",
   "ran": true,
   "source": "AllPrices.json.xz",
-  "freshAsOf": "2026-11-17",
-  "prevSeries": 628537,
-  "freshSeries": 627816,
-  "unchangedSeries": 626688,
-  "changedSeries": 1799,
+  "freshAsOf": "2026-11-24",
+  "prevSeries": 629741,
+  "freshSeries": 628947,
+  "unchangedSeries": 627906,
+  "changedSeries": 1785,
   "createdSeries": 0,
   "droppedSeries": 50,
   "added": 0,
-  "changed": 63360,
+  "changed": 58521,
   "removed": 50,
-  "keptOlderPoints": 20255453,
-  "touchedRatio": 0.00294,
+  "keptOlderPoints": 24453115,
+  "touchedRatio": 0.00291,
   "byVendor": {
    "mp": {
-    "series": 1660,
+    "series": 1647,
     "added": 0,
-    "changed": 59694,
+    "changed": 54920,
     "removed": 0
    },
    "ck": {
-    "series": 139,
+    "series": 138,
     "added": 0,
-    "changed": 3666,
+    "changed": 3601,
     "removed": 0
    },
    "cm": {
@@ -46,86 +46,75 @@
     "sid": "000d9280-a79a-4f9f-822c-7aaecbff3337",
     "key": "mp.n",
     "added": 0,
-    "changed": 37,
+    "changed": 30,
     "removed": 0
    },
    {
     "sid": "001cc57e-f3fc-4790-a9e5-171b2e3e8739",
-    "key": "mp.f",
-    "added": 0,
-    "changed": 56,
-    "removed": 0
-   },
-   {
-    "sid": "001cc57e-f3fc-4790-a9e5-171b2e3e8739",
-    "key": "mp.n",
-    "added": 0,
-    "changed": 32,
-    "removed": 0
-   },
-   {
-    "sid": "004f2ea4-0477-49b2-ad06-5aac7991103d",
     "key": "mp.f",
     "added": 0,
     "changed": 53,
     "removed": 0
    },
    {
-    "sid": "004f2ea4-0477-49b2-ad06-5aac7991103d",
+    "sid": "001cc57e-f3fc-4790-a9e5-171b2e3e8739",
     "key": "mp.n",
     "added": 0,
     "changed": 34,
     "removed": 0
    },
    {
+    "sid": "004f2ea4-0477-49b2-ad06-5aac7991103d",
+    "key": "mp.f",
+    "added": 0,
+    "changed": 46,
+    "removed": 0
+   },
+   {
+    "sid": "004f2ea4-0477-49b2-ad06-5aac7991103d",
+    "key": "mp.n",
+    "added": 0,
+    "changed": 33,
+    "removed": 0
+   },
+   {
     "sid": "006f53ab-e200-4242-9e8f-494f8d574826",
     "key": "mp.n",
     "added": 0,
-    "changed": 27,
+    "changed": 23,
     "removed": 0
    },
    {
     "sid": "007c828b-5854-41ac-9c18-f9d41c69ed33",
     "key": "mp.n",
     "added": 0,
-    "changed": 40,
+    "changed": 32,
     "removed": 0
    },
    {
-    "sid": "00841e4b-0995-4fb5-93d6-e177beba4934",
+    "sid": "01439983-8394-4a0c-9e9e-92a3f1927fe3",
     "key": "mp.f",
     "added": 0,
-    "changed": 1,
+    "changed": 33,
     "removed": 0
    }
   ]
  },
  "lastNewBuild": {
-  "asOf": "2026-11-23",
-  "metaLastModified": "Mon, 23 Nov 2026 06:17:08 GMT",
-  "runAt": "2026-11-23T20:14:19.944Z"
+  "asOf": "2026-11-24",
+  "metaLastModified": "Tue, 24 Nov 2026 06:14:31 GMT",
+  "runAt": "2026-11-24T22:25:04.381Z"
  },
  "lastMovers": {
-  "asOf": "2026-11-23",
+  "asOf": "2026-11-24",
   "rows": 480,
   "lastNewDays": {
-   "cm": "2026-11-23",
-   "tcg": "2026-11-23",
-   "ck": "2026-11-23"
+   "cm": "2026-11-24",
+   "tcg": "2026-11-24",
+   "ck": "2026-11-24"
   }
  },
  "anomalyHistory": [
-  {
-   "asOf": "2026-10-25",
-   "jumps": 0,
-   "drops": 3,
-   "byVendor": {
-    "mp": {
-     "jumps": 0,
-     "drops": 3
-    }
-   }
-  },
   {
    "asOf": "2026-10-26",
    "jumps": 6,
@@ -580,12 +569,23 @@
      "drops": 0
     }
    }
+  },
+  {
+   "asOf": "2026-11-24",
+   "jumps": 2,
+   "drops": 5,
+   "byVendor": {
+    "mp": {
+     "jumps": 2,
+     "drops": 5
+    }
+   }
   }
  ],
  "lastMobileMp": {
-  "asOf": "2026-11-23",
+  "asOf": "2026-11-24",
   "files": 4096,
-  "series": 157892,
-  "hiddenSeries": 57
+  "series": 157908,
+  "hiddenSeries": 56
  }
 }
