@@ -4,8 +4,9 @@ name: daily
 # MTGJSON's build finishes around 06:15 UTC (the Last-Modified of its files), but its FAQ says the files go live at
 # 9:00 AM EST (about 14:00 UTC), and on 2026-10-14 nothing was published by 18:00 UTC. So there are four passes a day:
 # one that finds nothing newer than the saved state stops after one 90-byte request, which makes the extra ones nearly
-# free. status.json records the pass that first built each new day (`lastNewBuild.runAt`): once a week or two of it
-# shows when MTGJSON really publishes, keep only the passes that matter. `bootstrap` rebuilds everything from
+# free. Measured over 29 days (2026-11-15, tools/price-history/README.md in the workshop): GitHub starts these passes 2 to 8 hours
+# after their cron time, the 1st pass of a day built the new day 19 times, the 2nd 10 times and the last two never (they are the
+# retry if a build fails), so all four are kept. `bootstrap` rebuilds everything from
 # MTGJSON's 90-day file. About once a week the job also writes a REPORT (status.json `lastResync`) of what differs between
 # the published set and MTGJSON's current 90-day file; it never changes what is published.
 on:
@@ -148,6 +149,17 @@ jobs:
           node scripts/publish-mp.mjs --from ${{ steps.publish.outputs.dir }} --out work/mp --report work/mp-report.json
           cp -r work/mp/mp site/mp
 
+      # The size of every set (site/sets.json), for the plugin's progress of a list that collects one set (scripts/lib/set-sizes.mjs says what it holds).
+      # From MTGJSON's list of sets, under 2 MB, checked against its published SHA-256. A step of its own whose failure is tolerated: without the file
+      # the plugin keeps the last one it read. The file is only copied to the site once the script has read it back and checked it.
+      - name: Set sizes
+        id: sets
+        if: steps.publish.outputs.go == 'true'
+        continue-on-error: true
+        run: |
+          node scripts/set-sizes.mjs --out work/sets --work work/tmp --report work/sets-report.json
+          cp work/sets/sets.json site/sets.json
+
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
         if: steps.publish.outputs.go == 'true'
 
@@ -189,6 +201,7 @@ jobs:
         env:
           MOVERS_OUTCOME: ${{ steps.movers.outcome }}
           MP_OUTCOME: ${{ steps.mp.outcome }}
+          SETS_OUTCOME: ${{ steps.sets.outcome }}
         run: |
           node -e '
             const fs = require("fs");
@@ -217,6 +230,13 @@ jobs:
               s.lastMobileMp = { asOf: m.asOf, files: m.files, series: m.series, hiddenSeries: m.hiddenSeries };
             } else if (process.env.MP_OUTCOME === "failure") {
               s.lastMobileMp = { ...(s.lastMobileMp ?? {}), failedAt: new Date().toISOString() };
+            }
+            // The set sizes: what the step wrote, or that it failed (the file is then missing from the site, see the step).
+            if (process.env.SETS_OUTCOME === "success") {
+              const m = JSON.parse(fs.readFileSync("work/sets-report.json", "utf8"));
+              s.lastSetSizes = { asOf: m.asOf, sets: m.sets, checksum: m.checksum };
+            } else if (process.env.SETS_OUTCOME === "failure") {
+              s.lastSetSizes = { ...(s.lastSetSizes ?? {}), failedAt: new Date().toISOString() };
             }
             fs.writeFileSync("status.json", JSON.stringify(s, null, 1) + "\n");
           '

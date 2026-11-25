@@ -1,8 +1,9 @@
 // What goes on the site is the state MINUS the vendors we do not publish (see publish.mjs).
 //
-// Mana Pool is collected into the state but not published (decided 2026-10-15): the plugin never reads it, it was 25 % of the published
+// Mana Pool is collected into the state but left out of the MAIN files (decided 2026-10-15): nothing in them read it, it was 25 % of their
 // bytes, and it is the least reliable vendor in MTGJSON's files (an integer overflow worth 21 million, prices a hundred times the other
 // vendors' for a card in ten thousand: its issues #1664 and #1703). Keeping it in the state costs nothing and leaves a future curve possible.
+// Since 2026-10-16 phones and tablets read it from a SEPARATE set, mp/ (lib/mp-files.mjs, publish-mp.mjs), so that nobody downloads it for nothing.
 
 /** Vendor codes of the series keys ("mp.n" -> "mp") that stay in the state but are left out of what is published. */
 export const UNPUBLISHED_VENDORS = ["mp"];

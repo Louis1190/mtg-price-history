@@ -21,13 +21,16 @@ mp/<xyz>.json.gz     the Mana Pool set for phones and tablets: the same 4 096 fi
 movers/<period>-<view>.json   the market movers: the 20 biggest rises and falls over 1d, 7d and 30d, for all vendors together (`all`) and for each of
                      cardmarket, tcgplayer and cardkingdom: 12 files of about 8 KB, in the response shape of cardbase.dev's `/movers`
                      ({ "data": { "period", "gainers": [...], "losers": [...] }, "meta": { "as_of" } }). See below.
+sets.json            { "v": 1, "asOf": "2026-11-25", "sets": { "<set code>": [baseSetSize, totalSetSize, "<type>"], ... } }: MTGJSON's size of every
+                     paper set (about 800, 20 KB, 5 KB compressed). The base size is only meaningful for core, expansion, masters and
+                     draft_innovation sets: MTGJSON's is often wrong for the others.
 status.json          what the last run did (also keeps this repository's scheduled job alive)
 ```
 
 - **`newDays`** (optional, in every file's `_`): each vendor's latest day on which its prices really moved. Cardmarket sometimes repeats the previous day's whole list; a reader that wants "the change
   since yesterday" reads it at that day, not at `asOf`. A reader that does not know the field ignores it.
-- **vendor**: `cm` Cardmarket (price guide *trend*, EUR), `tcg` TCGplayer, `ck` Card Kingdom (both USD). Mana Pool (`mp`) is collected but **not published**:
-  nothing reads it and its prices are the least reliable of the four (impossible values, prices a hundred times the other vendors').
+- **vendor**: `cm` Cardmarket (price guide *trend*, EUR), `tcg` TCGplayer, `ck` Card Kingdom (both USD). Mana Pool (`mp`) is collected but **not in these main files**:
+  its prices are the least reliable of the four (impossible values, prices a hundred times the other vendors'), so it only goes into the separate `mp/` set, behind a guard.
   The files in `s/` hold three vendors; `meta.json` says `"unpublishedVendors": ["mp"]`. Mana Pool has a set of its own, `mp/` (below).
 - **finish**: `n` normal, `f` foil, `e` etched.
 - **record** = `[start, end, [offset, cents], ...]`, in days since 1970-01-01. Only *changes* are stored: from day

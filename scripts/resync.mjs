@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 // Weekly resynchronisation of the stored price history with MTGJSON's 90-day file (see README.md, "Resynchronising").
 //
-//   node resync.mjs --prev <dir> --fresh <dir> --out <dir> [--dry-run] [--mutate <name>]
+//   node resync.mjs --prev <dir> --fresh <dir> --out <dir> [--dry-run] [--restore] [--mutate <name>]
 //
 //   --prev     the set we publish (what the daily job appended to)
 //   --fresh    a set built by `build.mjs build` from the CURRENT AllPrices (the source's word on its whole window)
 //   --out      where the reconciled set goes (not written with --dry-run, which only reports what WOULD change)
+//   --restore  --prev is a SNAPSHOT older than the fresh set (restoring after a bad day, README.md "Backups and restoring"): every series
+//              gains the days since the snapshot and the cards released since it are new series, which is what a snapshot lacks by
+//              definition and would trip the 5 % gate for ever. The gate then counts only what could damage what we HOLD: values
+//              changed, days removed, series that disappear. The independent check (verify.mjs resync) is unchanged and still decides.
 //
 // The rule is lib/resync.mjs's: inside the fresh set's window MTGJSON's current word wins, before it ours is kept.
 // It refuses (exit 1, nothing written) when the result looks wrong: a fresh set older than ours, more series changed
@@ -36,7 +40,7 @@ function parseArgs(argv) {
 
 const args = parseArgs(process.argv.slice(2));
 if (!args.prev || !args.fresh || (!args.out && !args["dry-run"])) {
-	console.error("usage: node resync.mjs --prev <dir> --fresh <dir> --out <dir> [--dry-run] [--mutate <name>]");
+	console.error("usage: node resync.mjs --prev <dir> --fresh <dir> --out <dir> [--dry-run] [--restore] [--mutate <name>]");
 	process.exit(2);
 }
 const t0 = Date.now();
@@ -60,7 +64,7 @@ const readShardFile = (dir, name) => {
 const names = new Set();
 for (const dir of [args.prev, args.fresh]) for (const f of readdirSync(join(dir, "s"))) if (f.endsWith(".json.gz")) names.add(f.slice(0, -".json.gz".length));
 
-const totals = { prevSeries: 0, freshSeries: 0, mergedSeries: 0, unchangedSeries: 0, changedSeries: 0, createdSeries: 0, droppedSeries: 0, added: 0, changed: 0, removed: 0, keptOlderPoints: 0 };
+const totals = { prevSeries: 0, freshSeries: 0, mergedSeries: 0, unchangedSeries: 0, changedSeries: 0, correctedSeries: 0, createdSeries: 0, droppedSeries: 0, added: 0, changed: 0, removed: 0, keptOlderPoints: 0 };
 const byVendor = {};
 const examples = [];
 const merged = new Map();
@@ -81,7 +85,10 @@ for (const name of [...names].sort()) {
 			const touched = r.added + r.changed + r.removed > 0;
 			if (!prevRecs[key]) totals.createdSeries++;
 			else if (!r.rec) totals.droppedSeries++;
-			else if (touched) totals.changedSeries++;
+			else if (touched) {
+				totals.changedSeries++;
+				if (r.changed + r.removed > 0) totals.correctedSeries++; // a value or a day we hold that MTGJSON says otherwise (not only days we lack)
+			}
 			else totals.unchangedSeries++;
 			if (touched) {
 				const v = key.split(".")[0];
@@ -108,8 +115,14 @@ for (const name of [...names].sort()) {
 log(`merged ${merged.size} shards`);
 
 const touchedSeries = totals.changedSeries + totals.createdSeries + totals.droppedSeries;
-Object.assign(report, totals, { touchedRatio: Number((touchedSeries / Math.max(totals.prevSeries, 1)).toFixed(5)), byVendor, examples });
-if (touchedSeries / Math.max(totals.prevSeries, 1) > MAX_CHANGED_RATIO) out({ ...report, refused: `${touchedSeries} of ${totals.prevSeries} series would change (more than ${MAX_CHANGED_RATIO * 100} %)` }, 1);
+// A restore from a snapshot: only what could damage what we hold counts (README.md, "Backups and restoring").
+const gatedSeries = args.restore ? totals.correctedSeries + totals.droppedSeries : touchedSeries;
+const ratioOf = (n) => Number((n / Math.max(totals.prevSeries, 1)).toFixed(5));
+Object.assign(report, totals, { restore: !!args.restore, touchedRatio: ratioOf(touchedSeries), gatedRatio: ratioOf(gatedSeries), byVendor, examples });
+if (gatedSeries / Math.max(totals.prevSeries, 1) > MAX_CHANGED_RATIO) {
+	const verb = args.restore ? "have a value or a day corrected, or disappear" : "would change";
+	out({ ...report, refused: `${gatedSeries} of ${totals.prevSeries} series ${verb} (more than ${MAX_CHANGED_RATIO * 100} %)` }, 1);
+}
 if (totals.mergedSeries < totals.prevSeries * (1 - MAX_LOST_SERIES_RATIO)) out({ ...report, refused: `${totals.mergedSeries} series left, from ${totals.prevSeries}` }, 1);
 if (args["dry-run"]) out(report);
 
