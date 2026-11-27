@@ -49,7 +49,7 @@ jobs:
     timeout-minutes: 45
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.retry.outputs.page_url }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -168,9 +168,27 @@ jobs:
         with:
           path: site
 
+      # The deployment is tried twice. GitHub sometimes cannot find, a fraction of a second after receiving it, the file the step above uploaded
+      # ("No artifacts named github-pages", actions/deploy-pages issue 451: five passes lost to it from 2026-11-21 to 11-27), and sees it later,
+      # within a minute according to the reports there. So a failed first attempt is tolerated and tried again after a pause. The second attempt is NOT
+      # tolerated: if it fails too, the job fails, which is what keeps the state from being saved for a day that is not online. It deploys the file
+      # already uploaded: never upload it a second time (two files of that name in one run is another error).
       - name: Deploy
         id: deployment
         if: steps.publish.outputs.go == 'true'
+        continue-on-error: true
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+      # `outcome`, not `conclusion`: a tolerated failure has the conclusion "success", and the second attempt would never run.
+      - name: Wait before the second attempt
+        if: steps.deployment.outcome == 'failure'
+        run: |
+          echo "::warning::The first deployment failed. Trying once more in 60 seconds."
+          sleep 60
+
+      - name: Deploy, second attempt
+        id: retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
       # After the deployment, not before: if it fails the state is not saved, so the next run does the same day again.
